@@ -6,7 +6,7 @@ from decouple import config, Config, RepositoryEnv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ROOT_DIR = BASE_DIR.parent 
-config = Config(RepositoryEnv(ROOT_DIR /  '.env'))
+config = Config(RepositoryEnv(ROOT_DIR / '.env'))
 
 SECRET_KEY = config('DJANGO_SECRET_KEY')
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
