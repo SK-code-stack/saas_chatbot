@@ -1,22 +1,15 @@
-import google.generativeai as genai
+from google import genai
 from core.config import settings
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
+client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
 class EmbeddingService:
 
     @staticmethod
-    def embed_query(text: str) -> list[float]:
-        """
-        Embed the user's question.
-        We use retrieval_query (not retrieval_document)
-        because this is a search query not a document.
-        This distinction improves search accuracy.
-        """
-        result = genai.embed_content(
-            model='models/text-embedding-004',
-            content=text,
-            task_type='retrieval_query',
+    def embed_query(text: str) -> list:
+        result = client.models.embed_content(
+            model='text-embedding-004',
+            contents=text,
         )
-        return result['embedding']
+        return result.embeddings[0].values

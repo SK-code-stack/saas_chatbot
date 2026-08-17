@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import APIKey
+from .models import APIKey, WidgetConfig
 
 
 class APIKeySerializer(serializers.ModelSerializer):
@@ -29,3 +29,19 @@ class APIKeyCreatedSerializer(serializers.ModelSerializer):
             'id', 'name', 'key_prefix',
             'raw_key', 'created_at'
         ]
+
+
+class WidgetConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WidgetConfig
+        fields = [
+            'bot_name', 'welcome_message',
+            'light_primary_color', 'light_secondary_color',
+            'dark_primary_color', 'dark_secondary_color',
+            'force_dark_mode', 'allow_user_toggle',
+            'icon_url', 'icon_emoji', 'position',
+        ]
+
+
+class WidgetIconUploadSerializer(serializers.Serializer):
+    icon = serializers.ImageField(help_text='Widget bubble icon image')

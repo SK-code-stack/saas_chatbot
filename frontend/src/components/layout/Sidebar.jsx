@@ -1,16 +1,19 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, FileText, Key, MessageSquare, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, FileText, Key, MessageSquare, Settings, LogOut, CreditCard, Palette } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import api from '../../lib/axios'
 import toast from 'react-hot-toast'
 
 const links = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/documents', icon: FileText, label: 'Documents' },
-  { to: '/api-keys', icon: Key, label: 'API Keys' },
-  { to: '/chat', icon: MessageSquare, label: 'Chat' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/documents',  icon: FileText,        label: 'Documents' },
+  { to: '/api-keys',   icon: Key,             label: 'API Keys' },
+  { to: '/chat',       icon: MessageSquare,   label: 'Chat' },
+  { to: '/widget',     icon: Palette,         label: 'Widget' },
+  { to: '/billing',    icon: CreditCard,      label: 'Billing' },
+  { to: '/settings',   icon: Settings,        label: 'Settings' },
 ]
+
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore()

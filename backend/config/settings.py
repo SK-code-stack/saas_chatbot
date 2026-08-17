@@ -96,6 +96,9 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    BASE_DIR.parent / 'widget',
+]
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ── Django REST Framework ──────────────────────────────────────────
@@ -146,3 +149,11 @@ SUPABASE_BUCKET = config('SUPABASE_BUCKET', default='documents')
 # ── FastAPI ───────────────────────────────────────────────────────
 FASTAPI_URL = config('FASTAPI_URL', default='http://localhost:8001')
 FASTAPI_INTERNAL_SECRET = config('FASTAPI_INTERNAL_SECRET', default='')
+
+# ── Stripe ───────────────────────────────────────────────────────
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+
+# ── Frontend ──────────────────────────────────────────────────────
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')

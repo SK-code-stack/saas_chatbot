@@ -42,6 +42,10 @@ class APIKeyViewSet(viewsets.GenericViewSet):
             key_prefix=prefix,
         )
 
+        # Auto-create widget config with defaults
+        from .models import WidgetConfig
+        WidgetConfig.objects.get_or_create(api_key=api_key)
+
         return Response({
             'id': api_key.id,
             'name': api_key.name,

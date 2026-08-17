@@ -14,7 +14,7 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     question: str
     document_ids: list[int]
-    system_prompt: str = None
+    system_prompt: str = ""
     chat_history: list[dict] = []
     top_k: int = 5
 
