@@ -38,6 +38,7 @@ class APIKeyViewSet(viewsets.GenericViewSet):
         api_key = APIKey.objects.create(
             user=request.user,
             name=serializer.validated_data['name'],
+            document_ids=serializer.validated_data.get('document_ids', []),
             key_hash=hashed,
             key_prefix=prefix,
         )
@@ -50,6 +51,7 @@ class APIKeyViewSet(viewsets.GenericViewSet):
             'id': api_key.id,
             'name': api_key.name,
             'key_prefix': api_key.key_prefix,
+            'document_ids': api_key.document_ids,
             'raw_key': raw_key,  # shown ONCE only
             'created_at': api_key.created_at,
             'warning': 'Save this key now. It will never be shown again.'

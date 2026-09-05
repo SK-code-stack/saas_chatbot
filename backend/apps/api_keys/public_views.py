@@ -28,9 +28,20 @@ class PublicChatView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        if not document_ids and hasattr(request, 'api_key') and request.api_key:
+            document_ids = request.api_key.document_ids or []
+
+        # If still empty, default to all completed documents of the user
+        if not document_ids:
+            from apps.documents.models import Document
+            document_ids = list(
+                Document.objects.filter(user=request.user, status='completed')
+                .values_list('id', flat=True)
+            )
+
         if not document_ids:
             return Response(
-                {'error': 'document_ids is required'},
+                {'error': 'No document knowledge base assigned to this chatbot key.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 

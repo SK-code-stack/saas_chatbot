@@ -6,7 +6,7 @@ class APIKeySerializer(serializers.ModelSerializer):
     class Meta:
         model = APIKey
         fields = [
-            'id', 'name', 'key_prefix', 'is_active',
+            'id', 'name', 'key_prefix', 'document_ids', 'is_active',
             'total_requests', 'last_used_at', 'created_at'
         ]
         read_only_fields = fields
@@ -14,6 +14,9 @@ class APIKeySerializer(serializers.ModelSerializer):
 
 class APIKeyCreateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=100)
+    document_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list
+    )
 
 
 class APIKeyCreatedSerializer(serializers.ModelSerializer):
@@ -26,7 +29,7 @@ class APIKeyCreatedSerializer(serializers.ModelSerializer):
     class Meta:
         model = APIKey
         fields = [
-            'id', 'name', 'key_prefix',
+            'id', 'name', 'key_prefix', 'document_ids',
             'raw_key', 'created_at'
         ]
 

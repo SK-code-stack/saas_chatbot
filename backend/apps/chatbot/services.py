@@ -10,7 +10,7 @@ class ChatbotService:
             payload = {
                 'question': question,
                 'document_ids': document_ids,
-                'system_prompt': system_prompt,
+                'system_prompt': system_prompt or "",
                 'chat_history': chat_history or [],
                 'top_k': top_k,
             }

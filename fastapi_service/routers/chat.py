@@ -10,11 +10,13 @@ from services.llm_service import LLMService
 router = APIRouter()
 
 
+from typing import Optional
+
 # ── Request/Response Models ────────────────────────────────────────
 class ChatRequest(BaseModel):
     question: str
     document_ids: list[int]
-    system_prompt: str = ""
+    system_prompt: Optional[str] = ""
     chat_history: list[dict] = []
     top_k: int = 5
 
@@ -80,7 +82,7 @@ async def ask(
         answer = LLMService.generate_response(
             question=request.question,
             context=context,
-            system_prompt=request.system_prompt,
+            system_prompt=request.system_prompt or "",
             chat_history=request.chat_history,
         )
     except Exception as e:

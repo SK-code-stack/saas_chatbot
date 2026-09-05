@@ -13,7 +13,7 @@ class GeminiProvider(BaseProvider):
 
     def __init__(self):
         self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        self.model = "gemini-1.5-flash"
+        self.model = "gemini-3.6-flash"
 
     def generate(
         self,
@@ -23,8 +23,18 @@ class GeminiProvider(BaseProvider):
         chat_history: Optional[list] = None,
     ) -> str:
         prompt = self._build_prompt(question, context, system_prompt, chat_history)
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=prompt,
-        )
-        return response.text
+        models_to_try = [self.model, "gemini-3.5-flash", "gemini-2.5-flash"]
+        last_error = None
+
+        for m in models_to_try:
+            try:
+                response = self.client.models.generate_content(
+                    model=m,
+                    contents=prompt,
+                )
+                return response.text
+            except Exception as e:
+                last_error = e
+                print(f"[GeminiProvider] Model {m} failed: {e}. Trying fallback...")
+
+        raise last_error

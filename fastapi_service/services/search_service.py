@@ -21,6 +21,10 @@ class SearchService:
 
         embedding_str = '[' + ','.join(map(str, query_embedding)) + ']'
 
+        # Tell HNSW index to explore more candidates at query time.
+        # Higher ef_search = better recall, slightly slower. 100 is a good default.
+        await db.execute(text("SET hnsw.ef_search = 100"))
+
         query = text("""
             SELECT
                 dc.id,

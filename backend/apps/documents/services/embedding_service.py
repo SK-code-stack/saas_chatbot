@@ -15,8 +15,9 @@ class EmbeddingService:
         for chunk in chunks:
             try:
                 result = self.client.models.embed_content(
-                    model='text-embedding-004',
+                    model='gemini-embedding-001',
                     contents=chunk.content,
+                    config={'output_dimensionality': 768},
                 )
                 chunk.embedding = result.embeddings[0].values
                 chunk.save(update_fields=['embedding'])

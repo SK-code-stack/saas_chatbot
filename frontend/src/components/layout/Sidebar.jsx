@@ -9,7 +9,7 @@ const links = [
   { to: '/documents',  icon: FileText,        label: 'Documents' },
   { to: '/api-keys',   icon: Key,             label: 'API Keys' },
   { to: '/chat',       icon: MessageSquare,   label: 'Chat' },
-  { to: '/widget',     icon: Palette,         label: 'Widget' },
+  { to: '/widget',     icon: Palette,         label: 'Widget Customizer' },
   { to: '/billing',    icon: CreditCard,      label: 'Billing' },
   { to: '/settings',   icon: Settings,        label: 'Settings' },
 ]

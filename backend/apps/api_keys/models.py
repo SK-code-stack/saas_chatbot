@@ -18,6 +18,7 @@ class APIKey(models.Model):
     name = models.CharField(max_length=100, help_text='e.g. Production, Website, Testing')
     key_hash = models.CharField(max_length=64, unique=True)  # SHA256 hash
     key_prefix = models.CharField(max_length=8)  # first 8 chars shown in dashboard
+    document_ids = models.JSONField(default=list, blank=True, help_text='Documents linked to this key/widget')
     is_active = models.BooleanField(default=True)
     last_used_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

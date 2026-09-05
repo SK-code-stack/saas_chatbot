@@ -143,8 +143,7 @@ export default function WidgetCustomizer() {
   const embedCode = `<script
   src="http://localhost:8000/static/widget.js"
   data-key-id="${selectedKeyId || 'KEY_ID'}"
-  data-api-key="${activeKeyObj ? 'sk_live_...' /* security placeholder */ : 'YOUR_API_KEY'}"
-  data-docs="${selectedDocs.join(',')}"
+  data-api-key="${activeKeyObj ? 'sk_live_...' : 'YOUR_API_KEY'}"
   data-api-url="http://localhost:8000"
 ></script>`
 
