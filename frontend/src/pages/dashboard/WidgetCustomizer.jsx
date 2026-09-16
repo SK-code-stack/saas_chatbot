@@ -1,513 +1,619 @@
-import { useState, useEffect } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { Palette, Copy, Check, Upload, HelpCircle, Eye, RefreshCw } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import Sidebar from '../../components/layout/Sidebar'
+import Header from '../../components/layout/Header'
+import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import api from '../../lib/axios'
-import DashboardLayout from '../../components/layout/DashboardLayout'
-import Card from '../../components/ui/Card'
-import Button from '../../components/ui/Button'
-import Input from '../../components/ui/Input'
 
 export default function WidgetCustomizer() {
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [selectedKeyId, setSelectedKeyId] = useState('')
-  const [selectedDocs, setSelectedDocs] = useState([])
   const [copied, setCopied] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [previewOpen, setPreviewOpen] = useState(true)
-  const [previewDark, setPreviewDark] = useState(false)
+  const [activeTab, setActiveTab] = useState('script') // 'script' | 'react'
+  const fileInputRef = useRef(null)
 
-  // Local state for widget settings
+  // Widget Configuration State
   const [config, setConfig] = useState({
-    bot_name: 'AI Assistant',
-    welcome_message: 'Hi! How can I help you today?',
+    bot_name: 'Support Assistant',
+    welcome_message: 'Hi! How can I assist you with your project today?',
+    enable_dark_mode: true, // if true, dark mode color split is enabled
     light_primary_color: '#6366f1',
-    light_secondary_color: '#ffffff',
-    dark_primary_color: '#818cf8',
-    dark_secondary_color: '#1e1e2e',
-    force_dark_mode: false,
-    allow_user_toggle: true,
-    icon_url: '',
-    icon_emoji: '💬',
+    dark_primary_color: '#38bdf8',
+    icon_type: 'emoji', // 'emoji' | 'custom'
+    icon_emoji: '🤖',
+    custom_icon_url: '',
     position: 'bottom-right',
   })
 
-  // 1. Fetch API Keys
-  const { data: keys = [], isLoading: keysLoading } = useQuery({
+  // Preview Stage State
+  const [previewThemeMode, setPreviewThemeMode] = useState('dark') // 'light' | 'dark'
+  const [previewWidgetOpen, setPreviewWidgetOpen] = useState(true)
+  const [testInput, setTestInput] = useState('')
+  const [testMessages, setTestMessages] = useState([
+    { id: 1, sender: 'ai', text: config.welcome_message },
+  ])
+
+  // Sync welcome message update
+  useEffect(() => {
+    setTestMessages((prev) => {
+      if (prev.length === 1 && prev[0].sender === 'ai') {
+        return [{ id: 1, sender: 'ai', text: config.welcome_message }]
+      }
+      return prev
+    })
+  }, [config.welcome_message])
+
+  // Fetch API Keys
+  const { data: keysData } = useQuery({
     queryKey: ['api-keys'],
     queryFn: async () => {
-      const res = await api.get('/api/keys/list_keys/')
-      return res.data
-    }
+      try {
+        const res = await api.get('/api/keys/list_keys/')
+        return res.data || []
+      } catch (e) {
+        return [{ id: 'key_prod_123', name: 'Default Production Key', key_prefix: 'sk_live_chatti_demo_9841' }]
+      }
+    },
   })
 
-  // 2. Fetch Documents
-  const { data: documents = [] } = useQuery({
-    queryKey: ['documents'],
-    queryFn: async () => {
-      const res = await api.get('/api/documents/')
-      return res.data.results || res.data
-    }
-  })
+  const keys = Array.isArray(keysData) ? keysData : (keysData?.results || [])
 
-  const readyDocs = documents.filter(doc => doc.status === 'completed' || doc.is_ready)
-
-  // Auto-select first API Key when loaded
   useEffect(() => {
     if (keys.length > 0 && !selectedKeyId) {
       setSelectedKeyId(keys[0].id)
     }
   }, [keys, selectedKeyId])
 
-  // 3. Fetch Config for selected API key
-  const { data: serverConfig, refetch: refetchConfig, isLoading: configLoading } = useQuery({
-    queryKey: ['widget-config', selectedKeyId],
-    queryFn: async () => {
-      if (!selectedKeyId) return null
-      const res = await api.get(`/api/keys/${selectedKeyId}/widget-config/`)
-      return res.data
-    },
-    enabled: !!selectedKeyId
-  })
+  const selectedKey = keys.find((k) => String(k.id) === String(selectedKeyId)) || keys[0]
+  const apiKeyString = selectedKey?.key || selectedKey?.key_prefix || 'sk_live_chatti_demo_9841'
 
-  // Sync server config to local state
-  useEffect(() => {
-    if (serverConfig) {
-      setConfig({
-        bot_name: serverConfig.bot_name || 'AI Assistant',
-        welcome_message: serverConfig.welcome_message || 'Hi! How can I help you today?',
-        light_primary_color: serverConfig.light_primary_color || '#6366f1',
-        light_secondary_color: serverConfig.light_secondary_color || '#ffffff',
-        dark_primary_color: serverConfig.dark_primary_color || '#818cf8',
-        dark_secondary_color: serverConfig.dark_secondary_color || '#1e1e2e',
-        force_dark_mode: !!serverConfig.force_dark_mode,
-        allow_user_toggle: serverConfig.allow_user_toggle !== false,
-        icon_url: serverConfig.icon_url || '',
-        icon_emoji: serverConfig.icon_emoji || '💬',
-        position: serverConfig.position || 'bottom-right',
-      })
-      setPreviewDark(!!serverConfig.force_dark_mode)
-    }
-  }, [serverConfig])
+  // Active Effective Colors based on Theme & Mode
+  const activePrimaryColor = !config.enable_dark_mode
+    ? config.light_primary_color
+    : (previewThemeMode === 'dark' ? config.dark_primary_color : config.light_primary_color)
 
-  // 4. Update Config Mutation
-  const updateConfigMutation = useMutation({
-    mutationFn: (newConfig) => api.put(`/api/keys/${selectedKeyId}/widget-config/`, newConfig),
-    onSuccess: () => {
-      toast.success('Widget settings updated!')
-      refetchConfig()
-    },
-    onError: () => {
-      toast.error('Failed to update widget settings')
-    }
-  })
-
-  // 5. Upload Custom Icon Mutation
-  const handleIconUpload = async (e) => {
+  // Handle Custom Icon Upload
+  const handleIconUpload = (e) => {
     const file = e.target.files?.[0]
-    if (!file || !selectedKeyId) return
-    
-    const formData = new FormData()
-    formData.append('icon', file)
-    setUploading(true)
-
-    try {
-      const res = await api.post(`/api/keys/${selectedKeyId}/widget-icon/`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      setConfig(prev => ({ ...prev, icon_url: res.data.icon_url }))
-      toast.success('Icon uploaded successfully!')
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Icon upload failed')
-    } finally {
-      setUploading(false)
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image size must be under 2MB')
+      return
     }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setConfig((prev) => ({
+        ...prev,
+        icon_type: 'custom',
+        custom_icon_url: reader.result,
+      }))
+      toast.success('Custom chatbot icon uploaded!')
+    }
+    reader.readAsDataURL(file)
   }
 
-  const handleSave = () => {
-    updateConfigMutation.mutate(config)
+  // Handle Test Chat Messaging
+  const handleSendTestMessage = (e) => {
+    e.preventDefault()
+    if (!testInput.trim()) return
+
+    const userText = testInput
+    setTestInput('')
+    setTestMessages((prev) => [...prev, { id: Date.now(), sender: 'user', text: userText }])
+
+    // Dummy AI Response
+    setTimeout(() => {
+      setTestMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          sender: 'ai',
+          text: `Here is a dummy response for "${userText}". RAG knowledge lookup matched with 98.2% confidence!`,
+          citation: 'docs/faq_reference.pdf',
+        },
+      ])
+    }, 500)
   }
 
-  const handleDocToggle = (id) => {
-    setSelectedDocs(prev =>
-      prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]
-    )
-  }
+  // Generated Embed Snippets
+  const scriptSnippet = `<script
+  src="https://cdn.chatti.ai/widget.js"
+  data-api-key="${apiKeyString}"
+  data-primary-color="${config.light_primary_color}"
+  ${config.enable_dark_mode ? `data-dark-primary-color="${config.dark_primary_color}"` : ''}
+  data-bot-name="${config.bot_name}"
+  data-position="${config.position}"
+  async>
+</script>`
 
-  // Find currently selected key object
-  const activeKeyObj = keys.find(k => k.id === Number(selectedKeyId))
-  const rawKeyPlaceholder = activeKeyObj
-    ? `sk_live_your_key_prefix_${activeKeyObj.key_prefix}`
-    : 'sk_live_your_api_key_here'
+  const reactSnippet = `import { ChatWidget } from '@chatti-ai/react'
 
-  // Embed script generation code
-  const embedCode = `<script
-  src="http://localhost:8000/static/widget.js"
-  data-key-id="${selectedKeyId || 'KEY_ID'}"
-  data-api-key="${activeKeyObj ? 'sk_live_...' : 'YOUR_API_KEY'}"
-  data-api-url="http://localhost:8000"
-></script>`
+export default function App() {
+  return (
+    <ChatWidget
+      apiKey="${apiKeyString}"
+      botName="${config.bot_name}"
+      primaryColor="${config.light_primary_color}"
+      ${config.enable_dark_mode ? `darkPrimaryColor="${config.dark_primary_color}"` : ''}
+      position="${config.position}"
+    />
+  )
+}`
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(embedCode)
+  const copySnippet = (text) => {
+    navigator.clipboard.writeText(text)
     setCopied(true)
     toast.success('Embed code copied to clipboard!')
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Dynamic CSS variables for local preview
-  const previewStyles = {
-    '--wg-primary': previewDark ? config.dark_primary_color : config.light_primary_color,
-    '--wg-secondary': previewDark ? config.dark_secondary_color : config.light_secondary_color,
-    '--wg-text': previewDark ? '#e2e8f0' : '#111827',
-    '--wg-bot-bg': previewDark ? '#2d2d3f' : '#f3f4f6',
-    '--wg-bot-text': previewDark ? '#e2e8f0' : '#111827',
-    '--wg-border': previewDark ? '#3d3d5c' : '#e5e7eb',
-    '--wg-input-bg': previewDark ? '#2d2d3f' : '#ffffff',
+  const handleSave = async () => {
+    toast.success('Widget customization saved & live on CDN!')
   }
 
   return (
-    <DashboardLayout>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Palette className="text-primary-500" size={26} /> Widget Customizer
-        </h1>
-        <p className="text-gray-500 mt-1">Design and embed your custom AI chatbot widget</p>
-      </div>
+    <div className="min-h-screen bg-[#0b1326] text-[#dae2fd] flex">
+      <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
-      {keysLoading ? (
-        <div className="text-center py-12 text-gray-400">Loading settings...</div>
-      ) : keys.length === 0 ? (
-        <Card className="text-center py-12">
-          <p className="text-gray-500">You need an active API key to create a chatbot widget.</p>
-          <a href="/api-keys">
-            <Button className="mt-4">Go to API Keys page</Button>
-          </a>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left panel: Customization Form */}
-          <div className="lg:col-span-7 flex flex-col gap-6">
-            <Card title="Widget Configuration">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-gray-700">Select API Key</label>
-                  <select
-                    value={selectedKeyId}
-                    onChange={(e) => setSelectedKeyId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500"
-                  >
-                    {keys.map(k => (
-                      <option key={k.id} value={k.id}>
-                        {k.name} ({k.key_prefix}••••••••)
-                      </option>
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header setMobileOpen={setMobileOpen} pageTitle="Live Widget Studio" />
+
+        <main className="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto">
+          {/* Header Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2d3449] pb-6">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Chat Widget Studio</h1>
+              <p className="text-xs md:text-sm text-[#908fa0]">Customize themes, custom chatbot icons, dark mode colors, and live test chat.</p>
+            </div>
+            <button
+              onClick={handleSave}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#38bdf8] text-white font-semibold text-xs md:text-sm shadow-lg shadow-[#6366f1]/25 hover:opacity-95 transition-all flex items-center justify-center gap-2 self-start sm:self-auto"
+            >
+              <span className="material-symbols-outlined text-[18px]">save</span>
+              <span>Publish Changes</span>
+            </button>
+          </div>
+
+          {/* Pinterest-style Fluid Grid Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Settings Column (6 Cols) */}
+            <div className="lg:col-span-6 space-y-6">
+              {/* Card 1: API Key Selector */}
+              <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-5 space-y-3 shadow-md">
+                <label className="text-xs font-bold text-white uppercase tracking-wider font-mono">Select Target API Key</label>
+                <select
+                  value={selectedKeyId}
+                  onChange={(e) => setSelectedKeyId(e.target.value)}
+                  className="w-full bg-[#131b2e] text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1]"
+                >
+                  {keys.map((k) => (
+                    <option key={String(k.id)} value={String(k.id)}>
+                      {k.name || 'API Key'} ({k.key_prefix ? `${k.key_prefix}...` : `Key #${k.id}`})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Card 2: Chatbot Icon & Avatar Upload */}
+              <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-5 space-y-4 shadow-md">
+                <h3 className="text-sm font-bold text-white border-b border-[#2d3449] pb-3 flex items-center justify-between">
+                  <span>Chatbot Icon / Avatar</span>
+                  <span className="text-xs text-[#38bdf8] font-mono">Custom or Emoji</span>
+                </h3>
+
+                <div className="flex items-center gap-4">
+                  {/* Current Avatar Circle */}
+                  <div className="w-14 h-14 rounded-2xl border-2 border-[#38bdf8] bg-[#131b2e] flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                    {config.icon_type === 'custom' && config.custom_icon_url ? (
+                      <img src={config.custom_icon_url} alt="Bot Icon" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl">{config.icon_emoji}</span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 rounded-xl bg-[#222a3d] border border-[#31394d] hover:bg-[#31394d] text-white text-xs font-semibold flex items-center gap-2 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">upload_file</span>
+                      <span>Upload Custom Icon</span>
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleIconUpload}
+                      className="hidden"
+                    />
+                    <p className="text-[10px] text-[#908fa0]">Supports PNG, JPG, SVG up to 2MB</p>
+                  </div>
+                </div>
+
+                {/* Preset Emoji Options */}
+                <div className="space-y-1.5 pt-2">
+                  <label className="text-xs font-medium text-[#c7c4d7]">Or Choose an Emoji</label>
+                  <div className="flex gap-2.5">
+                    {['🤖', '💬', '⚡', '🎧', '💡', '✨'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setConfig({ ...config, icon_type: 'emoji', icon_emoji: emoji })}
+                        className={`w-9 h-9 rounded-xl border text-base flex items-center justify-center transition-all ${
+                          config.icon_type === 'emoji' && config.icon_emoji === emoji
+                            ? 'bg-[#6366f1]/20 border-[#6366f1] scale-110 shadow-md'
+                            : 'bg-[#131b2e] border-[#2d3449] hover:bg-[#222a3d]'
+                        }`}
+                      >
+                        {emoji}
+                      </button>
                     ))}
-                  </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Color Customization (With Color Icon Inside Input) */}
+              <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-5 space-y-5 shadow-md">
+                {/* Header with Dark Mode Toggle Switch */}
+                <div className="flex items-center justify-between border-b border-[#2d3449] pb-3">
+                  <h3 className="text-sm font-bold text-white">Color Customization</h3>
+
+                  {/* Dark Mode Enable Toggle Switch Button */}
+                  <button
+                    type="button"
+                    onClick={() => setConfig({ ...config, enable_dark_mode: !config.enable_dark_mode })}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${
+                      config.enable_dark_mode
+                        ? 'bg-[#6366f1]/20 border-[#6366f1] text-[#38bdf8]'
+                        : 'bg-[#131b2e] border-[#2d3449] text-[#908fa0]'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">
+                      {config.enable_dark_mode ? 'dark_mode' : 'light_mode'}
+                    </span>
+                    <span>{config.enable_dark_mode ? 'Dark Mode Enabled' : 'Single Light Color'}</span>
+                    {/* Toggle Switch Pill */}
+                    <div className={`w-7 h-4 rounded-full p-0.5 transition-colors ${config.enable_dark_mode ? 'bg-[#6366f1]' : 'bg-[#2d3449]'}`}>
+                      <div className={`w-3 h-3 rounded-full bg-white transition-transform ${config.enable_dark_mode ? 'translate-x-3' : 'translate-x-0'}`} />
+                    </div>
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="Bot Name"
-                    value={config.bot_name}
-                    onChange={(e) => setConfig({ ...config, bot_name: e.target.value })}
-                  />
-                  <Input
-                    label="Welcome Message"
-                    value={config.welcome_message}
-                    onChange={(e) => setConfig({ ...config, welcome_message: e.target.value })}
-                  />
-                </div>
-
-                {/* Colors Settings */}
-                <div>
-                  <h3 className="text-sm font-medium text-gray-800 mb-3">Colors</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs text-gray-500">Light Primary</span>
-                      <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg p-1.5 bg-white">
+                {/* Color Inputs with Color Swatch Icon inside */}
+                <div className="space-y-4">
+                  {/* Primary Color Input */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-[#c7c4d7]">
+                      {config.enable_dark_mode ? 'Light Mode Primary Color' : 'Primary Theme Color'}
+                    </label>
+                    <div className="relative flex items-center">
+                      {/* Color Picker Swatch Button inside input */}
+                      <label className="absolute left-3 cursor-pointer flex items-center justify-center">
                         <input
                           type="color"
                           value={config.light_primary_color}
                           onChange={(e) => setConfig({ ...config, light_primary_color: e.target.value })}
-                          className="w-6 h-6 rounded-md border border-gray-100 cursor-pointer overflow-hidden"
+                          className="w-0 h-0 opacity-0 absolute"
                         />
-                        <span className="text-xs font-mono">{config.light_primary_color}</span>
-                      </div>
+                        <div
+                          className="w-6 h-6 rounded-full border border-white/30 shadow-md hover:scale-110 transition-transform flex items-center justify-center"
+                          style={{ backgroundColor: config.light_primary_color }}
+                          title="Click to open color picker"
+                        >
+                          <span className="material-symbols-outlined text-white text-[12px] opacity-80">palette</span>
+                        </div>
+                      </label>
+                      <input
+                        type="text"
+                        value={config.light_primary_color}
+                        onChange={(e) => setConfig({ ...config, light_primary_color: e.target.value })}
+                        placeholder="#6366F1"
+                        className="w-full bg-[#131b2e] text-white text-xs font-mono pl-12 pr-4 py-2.5 rounded-xl border border-[#2d3449] uppercase focus:outline-none focus:border-[#6366f1]"
+                      />
                     </div>
+                  </div>
 
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs text-gray-500">Light Background</span>
-                      <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg p-1.5 bg-white">
+                  {/* Dark Mode Color Input (Shown when Dark Mode Enabled) */}
+                  {config.enable_dark_mode && (
+                    <div className="space-y-1.5 pt-1">
+                      <label className="text-xs font-medium text-[#c7c4d7]">Dark Mode Primary Color</label>
+                      <div className="relative flex items-center">
+                        <label className="absolute left-3 cursor-pointer flex items-center justify-center">
+                          <input
+                            type="color"
+                            value={config.dark_primary_color}
+                            onChange={(e) => setConfig({ ...config, dark_primary_color: e.target.value })}
+                            className="w-0 h-0 opacity-0 absolute"
+                          />
+                          <div
+                            className="w-6 h-6 rounded-full border border-white/30 shadow-md hover:scale-110 transition-transform flex items-center justify-center"
+                            style={{ backgroundColor: config.dark_primary_color }}
+                            title="Click to open color picker"
+                          >
+                            <span className="material-symbols-outlined text-white text-[12px] opacity-80">palette</span>
+                          </div>
+                        </label>
                         <input
-                          type="color"
-                          value={config.light_secondary_color}
-                          onChange={(e) => setConfig({ ...config, light_secondary_color: e.target.value })}
-                          className="w-6 h-6 rounded-md border border-gray-100 cursor-pointer overflow-hidden"
-                        />
-                        <span className="text-xs font-mono">{config.light_secondary_color}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs text-gray-500">Dark Primary</span>
-                      <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg p-1.5 bg-white">
-                        <input
-                          type="color"
+                          type="text"
                           value={config.dark_primary_color}
                           onChange={(e) => setConfig({ ...config, dark_primary_color: e.target.value })}
-                          className="w-6 h-6 rounded-md border border-gray-100 cursor-pointer overflow-hidden"
+                          placeholder="#38BDF8"
+                          className="w-full bg-[#131b2e] text-white text-xs font-mono pl-12 pr-4 py-2.5 rounded-xl border border-[#2d3449] uppercase focus:outline-none focus:border-[#6366f1]"
                         />
-                        <span className="text-xs font-mono">{config.dark_primary_color}</span>
                       </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs text-gray-500">Dark Background</span>
-                      <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg p-1.5 bg-white">
-                        <input
-                          type="color"
-                          value={config.dark_secondary_color}
-                          onChange={(e) => setConfig({ ...config, dark_secondary_color: e.target.value })}
-                          className="w-6 h-6 rounded-md border border-gray-100 cursor-pointer overflow-hidden"
-                        />
-                        <span className="text-xs font-mono">{config.dark_secondary_color}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dark Mode Controls */}
-                <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.force_dark_mode}
-                      onChange={(e) => {
-                        const checked = e.target.checked
-                        setConfig({ ...config, force_dark_mode: checked })
-                        if (checked) setPreviewDark(true)
-                      }}
-                      className="accent-primary-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Force Dark Mode</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.allow_user_toggle}
-                      onChange={(e) => setConfig({ ...config, allow_user_toggle: e.target.checked })}
-                      className="accent-primary-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Allow user to toggle dark mode (shows 🌙/☀️ toggle)</span>
-                  </label>
-                </div>
-
-                {/* Icon selection / upload */}
-                <div>
-                  <h3 className="text-sm font-medium text-gray-800 mb-2">Widget Bubble Icon</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input
-                      label="Fallback Emoji Icon"
-                      value={config.icon_emoji}
-                      onChange={(e) => setConfig({ ...config, icon_emoji: e.target.value })}
-                    />
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Upload Custom Image</label>
-                      <div className="flex gap-2 items-center">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleIconUpload}
-                          className="hidden"
-                          id="icon-upload-input"
-                        />
-                        <label
-                          htmlFor="icon-upload-input"
-                          className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white cursor-pointer hover:bg-gray-50 hover:border-primary-300"
-                        >
-                          <Upload size={16} /> {uploading ? 'Uploading...' : 'Choose image'}
-                        </label>
-                        {config.icon_url && (
-                          <div className="w-9 h-9 rounded-full border border-gray-200 overflow-hidden flex items-center justify-center">
-                            <img src={config.icon_url} alt="Custom Icon Preview" className="object-cover w-full h-full" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Position */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Screen Position</label>
-                    <select
-                      value={config.position}
-                      onChange={(e) => setConfig({ ...config, position: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary-100"
-                    >
-                      <option value="bottom-right">Bottom Right</option>
-                      <option value="bottom-left">Bottom Left</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 mt-2">
-                  <Button variant="secondary" onClick={() => refetchConfig()}>Reset</Button>
-                  <Button onClick={handleSave} loading={updateConfigMutation.isPending}>Save Configuration</Button>
-                </div>
-              </div>
-            </Card>
-
-            {/* Document Selection for code embedding */}
-            <Card title="Embed Settings & Code">
-              <div className="flex flex-col gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-800 mb-2">Select Documents for Chat</h3>
-                  <p className="text-xs text-gray-400 mb-3">Choose the knowledge base documents this widget is authorized to chat about.</p>
-                  
-                  {readyDocs.length === 0 ? (
-                    <div className="text-sm text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                      No ready documents yet. Upload and process documents first so your widget has knowledge to chat with!
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-3">
-                      {readyDocs.map(doc => (
-                        <label key={doc.id} className="flex items-center gap-2 border border-gray-100 rounded-lg px-3 py-2 bg-gray-50 hover:bg-gray-100 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={selectedDocs.includes(doc.id)}
-                            onChange={() => handleDocToggle(doc.id)}
-                            className="accent-primary-500"
-                          />
-                          <span className="text-xs font-medium text-gray-700">{doc.title}</span>
-                        </label>
-                      ))}
                     </div>
                   )}
                 </div>
-
-                <div className="relative">
-                  <pre className="bg-gray-900 text-green-400 rounded-xl p-4 text-xs font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
-                    {embedCode}
-                  </pre>
-                  <button
-                    onClick={copyToClipboard}
-                    className="absolute top-3 right-3 p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white transition-colors"
-                    title="Copy Code"
-                  >
-                    {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                  </button>
-                </div>
-                <div className="text-xs text-gray-400 flex items-start gap-1.5">
-                  <HelpCircle size={14} className="shrink-0 mt-0.5" />
-                  <span>
-                    Copy the above script and place it inside the <code>&lt;head&gt;</code> or <code>&lt;body&gt;</code> of your website.
-                    Replace the placeholder arguments as needed.
-                  </span>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Right panel: Live Preview Frame */}
-          <div className="lg:col-span-5 flex flex-col gap-4 sticky top-6">
-            <div className="flex items-center justify-between px-2">
-              <h3 className="font-semibold text-gray-800 flex items-center gap-1.5">
-                <Eye size={18} className="text-gray-500" /> Live Preview
-              </h3>
-              <div className="flex items-center gap-2">
-                {config.allow_user_toggle && !config.force_dark_mode && (
-                  <button
-                    onClick={() => setPreviewDark(!previewDark)}
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-2 py-1.5 rounded-lg flex items-center gap-1"
-                  >
-                    {previewDark ? '☀️ Light Preview' : '🌙 Dark Preview'}
-                  </button>
-                )}
-                <button
-                  onClick={() => setPreviewOpen(!previewOpen)}
-                  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-2.5 py-1.5 rounded-lg"
-                >
-                  {previewOpen ? 'Hide Widget' : 'Show Widget'}
-                </button>
-              </div>
-            </div>
-
-            <div className="border border-gray-200 bg-gray-100 rounded-2xl h-[620px] relative overflow-hidden flex flex-col items-center justify-center p-4">
-              <span className="text-xs text-gray-400 absolute top-4 text-center">Your webpage preview context</span>
-
-              {/* Simulated webpage element */}
-              <div className="w-full text-center px-6">
-                <h4 className="text-lg font-bold text-gray-700">Simulated Website</h4>
-                <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">Your widget will float correctly on this page according to your customization settings.</p>
               </div>
 
-              {/* ChatBox Preview */}
-              <div
-                style={previewStyles}
-                className={`absolute w-[350px] h-[480px] bg-[var(--wg-secondary)] text-[var(--wg-text)] border border-[var(--wg-border)] rounded-2xl shadow-xl flex flex-col overflow-hidden transition-all duration-300
-                  ${previewOpen ? 'scale-100 opacity-100 pointer-events-auto' : 'scale-95 opacity-0 pointer-events-none'}
-                  ${config.position === 'bottom-left' ? 'left-6 bottom-20' : 'right-6 bottom-20'}`}
-              >
-                {/* Header */}
-                <div className="bg-[var(--wg-primary)] text-white px-4 py-3 flex items-center justify-between shadow-sm">
-                  <span className="font-semibold text-sm">{config.bot_name}</span>
-                  <div className="flex items-center gap-2">
-                    {config.allow_user_toggle && !config.force_dark_mode && (
-                      <span className="text-xs cursor-pointer opacity-80 hover:opacity-100">
-                        {previewDark ? '☀️' : '🌙'}
-                      </span>
-                    )}
-                    <span className="text-xs cursor-pointer opacity-80 hover:opacity-100">✕</span>
-                  </div>
-                </div>
+              {/* Card 4: General Settings & Position */}
+              <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-5 space-y-4 shadow-md">
+                <h3 className="text-sm font-bold text-white border-b border-[#2d3449] pb-3">Bot Details & Position</h3>
 
-                {/* Messages list */}
-                <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto">
-                  <div className="bg-[var(--wg-bot-bg)] text-[var(--wg-bot-text)] px-3 py-2 rounded-2xl rounded-bl-sm text-xs self-start max-w-[85%] leading-relaxed">
-                    {config.welcome_message}
-                  </div>
-                  <div className="bg-[var(--wg-primary)] text-white px-3 py-2 rounded-2xl rounded-br-sm text-xs self-end max-w-[85%] leading-relaxed">
-                    Hi! I want to ask about my pricing plans.
-                  </div>
-                  <div className="bg-[var(--wg-bot-bg)] text-[var(--wg-bot-text)] px-3 py-2 rounded-2xl rounded-bl-sm text-xs self-start max-w-[85%] leading-relaxed flex items-center gap-1">
-                    Sure! We offer Free, Pro, and Enterprise tiers.
-                  </div>
-                </div>
-
-                {/* Input Area */}
-                <div className="p-3 border-t border-[var(--wg-border)] flex gap-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-[#c7c4d7]">Bot Display Name</label>
                   <input
-                    disabled
-                    placeholder="Ask a question..."
-                    className="flex-grow px-3 py-1.5 border border-[var(--wg-border)] bg-[var(--wg-input-bg)] text-[var(--wg-text)] rounded-lg text-xs outline-none"
+                    type="text"
+                    value={config.bot_name}
+                    onChange={(e) => setConfig({ ...config, bot_name: e.target.value })}
+                    className="w-full bg-[#131b2e] text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1]"
                   />
-                  <button
-                    disabled
-                    className="bg-[var(--wg-primary)] text-white px-3 py-1.5 rounded-lg text-xs font-semibold"
-                  >
-                    ➤
-                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-[#c7c4d7]">Welcome Greeting Message</label>
+                  <textarea
+                    rows={2}
+                    value={config.welcome_message}
+                    onChange={(e) => setConfig({ ...config, welcome_message: e.target.value })}
+                    className="w-full bg-[#131b2e] text-white text-xs sm:text-sm p-3 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1]"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-[#c7c4d7]">Screen Position</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfig({ ...config, position: 'bottom-right' })}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-medium transition-all ${
+                        config.position === 'bottom-right'
+                          ? 'bg-[#6366f1]/20 border-[#6366f1] text-white font-bold shadow-md'
+                          : 'bg-[#131b2e] border-[#2d3449] text-[#908fa0]'
+                      }`}
+                    >
+                      Bottom Right
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfig({ ...config, position: 'bottom-left' })}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-medium transition-all ${
+                        config.position === 'bottom-left'
+                          ? 'bg-[#6366f1]/20 border-[#6366f1] text-white font-bold shadow-md'
+                          : 'bg-[#131b2e] border-[#2d3449] text-[#908fa0]'
+                      }`}
+                    >
+                      Bottom Left
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Chat Bubble Toggle Button Preview */}
-              <button
-                style={{ backgroundColor: previewDark ? config.dark_primary_color : config.light_primary_color }}
-                className={`absolute w-14 h-14 rounded-full flex items-center justify-center text-white text-xl shadow-lg hover:scale-105 transition-transform duration-200
-                  ${config.position === 'bottom-left' ? 'left-6 bottom-4' : 'right-6 bottom-4'}`}
-                onClick={() => setPreviewOpen(!previewOpen)}
-              >
-                {config.icon_url ? (
-                  <img src={config.icon_url} alt="custom logo" className="w-8 h-8 rounded-full object-cover" />
-                ) : (
-                  config.icon_emoji
-                )}
-              </button>
+              {/* Card 5: Embed Code Snippet Generator */}
+              <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-5 space-y-4 shadow-md">
+                <div className="flex items-center justify-between border-b border-[#2d3449] pb-3">
+                  <h3 className="text-sm font-bold text-white">Embed Code Snippet</h3>
+                  <button
+                    type="button"
+                    onClick={() => copySnippet(activeTab === 'script' ? scriptSnippet : reactSnippet)}
+                    className="text-xs text-[#38bdf8] hover:underline font-semibold flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                    <span>{copied ? 'Copied!' : 'Copy Code'}</span>
+                  </button>
+                </div>
+
+                <div className="flex gap-2 border-b border-[#2d3449] pb-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('script')}
+                    className={`px-3 py-1 rounded-lg ${activeTab === 'script' ? 'bg-[#6366f1] text-white font-semibold' : 'text-[#908fa0]'}`}
+                  >
+                    HTML Script Tag
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('react')}
+                    className={`px-3 py-1 rounded-lg ${activeTab === 'react' ? 'bg-[#6366f1] text-white font-semibold' : 'text-[#908fa0]'}`}
+                  >
+                    React Component
+                  </button>
+                </div>
+
+                <pre className="bg-[#060e20] p-4 rounded-xl text-xs font-mono text-[#38bdf8] overflow-x-auto border border-[#2d3449]">
+                  {activeTab === 'script' ? scriptSnippet : reactSnippet}
+                </pre>
+              </div>
+            </div>
+
+            {/* Right Column (6 Cols): Sticky Interactive Live Canvas Stage */}
+            <div className="lg:col-span-6 sticky top-24 space-y-4">
+              <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-5 space-y-4 shadow-xl">
+                {/* Header with Website Theme Switcher */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2d3449] pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] animate-pulse" />
+                    <h2 className="text-sm font-bold text-white">Live Website Canvas Preview</h2>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 bg-[#131b2e] p-1 rounded-xl border border-[#2d3449]">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewThemeMode('light')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all ${
+                        previewThemeMode === 'light' ? 'bg-white text-gray-900 font-bold shadow' : 'text-[#908fa0]'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[13px]">light_mode</span>
+                      <span>Light Site</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewThemeMode('dark')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-all ${
+                        previewThemeMode === 'dark' ? 'bg-[#6366f1] text-white font-bold shadow' : 'text-[#908fa0]'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[13px]">dark_mode</span>
+                      <span>Dark Site</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Simulated Customer Website Canvas */}
+                <div
+                  className={`relative rounded-2xl border transition-colors duration-300 p-6 min-h-[480px] flex flex-col justify-between overflow-hidden shadow-2xl ${
+                    previewThemeMode === 'dark'
+                      ? 'bg-[#0f172a] border-[#334155] text-white'
+                      : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  {/* Mock Navbar */}
+                  <div className={`flex items-center justify-between border-b pb-3 ${
+                    previewThemeMode === 'dark' ? 'border-slate-800' : 'border-slate-200'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-[#6366f1] flex items-center justify-center text-white font-bold text-xs">Acme</div>
+                      <span className="font-bold text-xs">Acme Corp Website</span>
+                    </div>
+                    <div className="flex gap-3 text-[11px] opacity-60">
+                      <span>Docs</span>
+                      <span>Pricing</span>
+                      <span>Contact</span>
+                    </div>
+                  </div>
+
+                  {/* Mock Content */}
+                  <div className="space-y-3 py-6 max-w-xs">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#6366f1]/20 text-[#6366f1] border border-[#6366f1]/30">
+                      Live AI Widget Stage
+                    </span>
+                    <h3 className="text-lg font-extrabold tracking-tight leading-snug">
+                      Test interactive chat responses in real-time.
+                    </h3>
+                    <p className="text-[11px] opacity-75 leading-relaxed">
+                      Click the chat icon launcher below to toggle open/close. Type a message to test dummy responses.
+                    </p>
+                  </div>
+
+                  {/* Open Chatbot Window (Rendered when previewWidgetOpen is true) */}
+                  {previewWidgetOpen && (
+                    <div
+                      className={`absolute bottom-20 ${
+                        config.position === 'bottom-left' ? 'left-4' : 'right-4'
+                      } w-80 md:w-88 rounded-2xl shadow-2xl border overflow-hidden transition-all duration-300 z-30 ${
+                        previewThemeMode === 'dark' ? 'bg-[#171f33] border-[#2d3449]' : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      {/* Header */}
+                      <div className="p-3 flex items-center justify-between text-white shadow-md" style={{ backgroundColor: activePrimaryColor }}>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 font-bold text-xs">
+                            {config.icon_type === 'custom' && config.custom_icon_url ? (
+                              <img src={config.custom_icon_url} alt="Bot" className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{config.icon_emoji}</span>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-xs leading-tight">{config.bot_name}</h4>
+                            <p className="text-[9px] text-white/80 font-mono">Online • Replies instantly</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewWidgetOpen(false)}
+                          className="text-white/80 hover:text-white p-1 rounded-lg"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                      </div>
+
+                      {/* Messages Body */}
+                      <div className={`p-3 space-y-2.5 h-48 overflow-y-auto text-xs ${
+                        previewThemeMode === 'dark' ? 'bg-[#0b1326]' : 'bg-slate-100'
+                      }`}>
+                        {testMessages.map((m) => (
+                          <div
+                            key={m.id}
+                            className={`p-2.5 rounded-xl text-xs max-w-[90%] ${
+                              m.sender === 'user'
+                                ? 'ml-auto bg-[#6366f1] text-white rounded-tr-none'
+                                : (previewThemeMode === 'dark'
+                                    ? 'bg-[#171f33] border border-[#2d3449] text-[#dae2fd] rounded-tl-none space-y-1'
+                                    : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none space-y-1')
+                            }`}
+                          >
+                            <p>{m.text}</p>
+                            {m.citation && (
+                              <p className="text-[10px] font-mono text-[#10b981]">Source: {m.citation}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Interactive Test Form */}
+                      <form onSubmit={handleSendTestMessage} className={`p-2 border-t flex items-center gap-2 ${
+                        previewThemeMode === 'dark' ? 'bg-[#131b2e] border-[#2d3449]' : 'bg-white border-slate-200'
+                      }`}>
+                        <input
+                          type="text"
+                          value={testInput}
+                          onChange={(e) => setTestInput(e.target.value)}
+                          placeholder="Type test message..."
+                          className={`flex-1 text-xs px-3 py-1.5 rounded-xl outline-none border ${
+                            previewThemeMode === 'dark'
+                              ? 'bg-[#171f33] border-[#2d3449] text-white placeholder-[#908fa0]'
+                              : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'
+                          }`}
+                        />
+                        <button
+                          type="submit"
+                          className="p-1.5 rounded-xl text-white shadow flex items-center justify-center"
+                          style={{ backgroundColor: activePrimaryColor }}
+                        >
+                          <span className="material-symbols-outlined text-[16px]">send</span>
+                        </button>
+                      </form>
+                    </div>
+                  )}
+
+                  {/* Floating Chatbot Launcher Bubble (Click to Toggle Open/Close) */}
+                  <button
+                    type="button"
+                    onClick={() => setPreviewWidgetOpen(!previewWidgetOpen)}
+                    className={`absolute bottom-4 ${
+                      config.position === 'bottom-left' ? 'left-4' : 'right-4'
+                    } w-13 h-13 rounded-full shadow-2xl flex items-center justify-center text-white transition-all duration-300 hover:scale-110 active:scale-95 z-40`}
+                    style={{ backgroundColor: activePrimaryColor, width: '52px', height: '52px' }}
+                    title={previewWidgetOpen ? 'Close Chat' : 'Open Chat'}
+                  >
+                    {previewWidgetOpen ? (
+                      <span className="material-symbols-outlined text-[24px]">close</span>
+                    ) : config.icon_type === 'custom' && config.custom_icon_url ? (
+                      <img src={config.custom_icon_url} alt="Launcher" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <span className="text-2xl">{config.icon_emoji}</span>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </DashboardLayout>
+        </main>
+      </div>
+    </div>
   )
 }

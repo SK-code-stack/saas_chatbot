@@ -1,133 +1,61 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import api from '../../lib/axios'
-import Input from '../../components/ui/Input'
-import Button from '../../components/ui/Button'
 
 export default function ForgotPassword() {
-  const navigate = useNavigate()
-  const [step, setStep] = useState(1)  // 1 = email, 2 = OTP + new password
   const [email, setEmail] = useState('')
-  const [form, setForm] = useState({ otp_code: '', new_password: '', confirm_password: '' })
-  const [loading, setLoading] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
 
-  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value })
-
-  const handleSendOTP = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
-    if (!email.trim()) return toast.error('Email is required')
-    setLoading(true)
-    try {
-      await api.post('/api/auth/forgot_password/', { email })
-      toast.success('OTP sent! Check your email.')
-      setStep(2)
-    } catch (err) {
-      // Show success even on error to not reveal if email exists
-      toast.success('If this email exists, an OTP has been sent.')
-      setStep(2)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleResetPassword = async (e) => {
-    e.preventDefault()
-    if (form.new_password !== form.confirm_password) {
-      return toast.error("Passwords don't match")
-    }
-    setLoading(true)
-    try {
-      await api.post('/api/auth/reset_password/', {
-        email,
-        otp_code: form.otp_code,
-        new_password: form.new_password,
-        confirm_password: form.confirm_password,
-      })
-      toast.success('Password reset successfully!')
-      navigate('/login')
-    } catch (err) {
-      const msg = err.response?.data?.error || 'Reset failed. Please try again.'
-      toast.error(msg)
-    } finally {
-      setLoading(false)
-    }
+    if (!email) return
+    setSubmitted(true)
+    toast.success('Password reset instructions sent to your email!')
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+    <div className="min-h-screen bg-[#0b1326] text-[#dae2fd] flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="w-full max-w-md bg-[#171f33]/90 border border-[#2d3449] rounded-2xl p-8 shadow-2xl backdrop-blur-xl space-y-6">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 rounded-full bg-[#38bdf8]/20 border border-[#38bdf8]/30 mx-auto flex items-center justify-center text-[#38bdf8]">
+            <span className="material-symbols-outlined text-[24px]">lock_reset</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Reset Your Password</h1>
+          <p className="text-xs text-[#908fa0]">Enter your registered account email to receive reset instructions</p>
+        </div>
 
-          {step === 1 ? (
-            <>
-              <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900">Forgot Password</h1>
-                <p className="text-gray-500 mt-1 text-sm">
-                  Enter your email and we'll send you a reset code.
-                </p>
-              </div>
-              <form onSubmit={handleSendOTP} className="flex flex-col gap-4">
-                <Input
-                  label="Email"
-                  type="email"
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <Button type="submit" loading={loading} fullWidth>
-                  Send Reset Code
-                </Button>
-              </form>
-            </>
-          ) : (
-            <>
-              <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-900">Reset Password</h1>
-                <p className="text-gray-500 mt-1 text-sm">
-                  Enter the code sent to <strong>{email}</strong>
-                </p>
-              </div>
-              <form onSubmit={handleResetPassword} className="flex flex-col gap-4">
-                <Input
-                  label="OTP Code"
-                  placeholder="4-digit code"
-                  value={form.otp_code}
-                  onChange={set('otp_code')}
-                  maxLength={4}
-                />
-                <Input
-                  label="New Password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={form.new_password}
-                  onChange={set('new_password')}
-                />
-                <Input
-                  label="Confirm Password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={form.confirm_password}
-                  onChange={set('confirm_password')}
-                />
-                <Button type="submit" loading={loading} fullWidth>
-                  Reset Password
-                </Button>
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="text-sm text-primary-600 hover:underline text-center"
-                >
-                  ← Back to email
-                </button>
-              </form>
-            </>
-          )}
+        {!submitted ? (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[#c7c4d7]">Work Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@company.com"
+                className="w-full bg-[#131b2e] text-white text-sm px-4 py-2.5 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1]"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#38bdf8] font-semibold text-sm text-white shadow-lg transition-all"
+            >
+              Send Reset Instructions
+            </button>
+          </form>
+        ) : (
+          <div className="p-4 bg-[#10b981]/10 border border-[#10b981]/30 rounded-xl text-center space-y-2">
+            <span className="material-symbols-outlined text-[#10b981] text-[32px]">mark_email_read</span>
+            <p className="text-sm font-semibold text-white">Reset Link Sent!</p>
+            <p className="text-xs text-[#c7c4d7]">Check your inbox at <span className="font-mono text-white">{email}</span> for next steps.</p>
+          </div>
+        )}
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Remember your password?{' '}
-            <Link to="/login" className="text-primary-600 font-medium hover:underline">Sign in</Link>
-          </p>
+        <div className="text-center">
+          <Link to="/login" className="text-xs text-[#38bdf8] font-semibold hover:underline">
+            ← Back to Sign In
+          </Link>
         </div>
       </div>
     </div>

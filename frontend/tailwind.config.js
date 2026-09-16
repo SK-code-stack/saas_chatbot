@@ -1,10 +1,31 @@
+/** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
+        background: '#0b1326',
+        surface: '#0b1326',
+        'surface-dim': '#0b1326',
+        'surface-bright': '#31394d',
+        'surface-container-lowest': '#060e20',
+        'surface-container-low': '#131b2e',
+        'surface-container': '#171f33',
+        'surface-container-high': '#222a3d',
+        'surface-container-highest': '#2d3449',
+        'surface-variant': '#2d3449',
+        'on-surface': '#dae2fd',
+        'on-surface-variant': '#c7c4d7',
+        'inverse-surface': '#dae2fd',
+        'inverse-on-surface': '#283044',
+        outline: '#908fa0',
+        'outline-variant': '#464554',
+        'surface-tint': '#c0c1ff',
         primary: {
-          50:  '#eef2ff',
+          DEFAULT: '#6366f1',
+          container: '#4f46e5',
+          50: '#eef2ff',
           100: '#e0e7ff',
           200: '#c7d2fe',
           300: '#a5b4fc',
@@ -14,7 +35,41 @@ export default {
           700: '#4338ca',
           800: '#3730a3',
           900: '#312e81',
-        }
+        },
+        'on-primary': '#ffffff',
+        'on-primary-container': '#e0e7ff',
+        secondary: {
+          DEFAULT: '#38bdf8',
+          container: '#0284c7',
+        },
+        'on-secondary': '#00354a',
+        tertiary: {
+          DEFAULT: '#10b981',
+          container: '#047857',
+        },
+        'on-tertiary': '#003824',
+        error: {
+          DEFAULT: '#ef4444',
+          container: '#991b1b',
+        },
+      },
+      borderRadius: {
+        DEFAULT: '0.25rem',
+        sm: '0.25rem',
+        md: '0.5rem',
+        lg: '0.75rem',
+        xl: '1rem',
+        '2xl': '1.5rem',
+        full: '9999px',
+      },
+      spacing: {
+        margin: '2rem',
+        gutter: '1.5rem',
+        'space-xs': '0.25rem',
+        'space-sm': '0.5rem',
+        'space-md': '1rem',
+        'space-lg': '1.5rem',
+        'space-xl': '2.5rem',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],

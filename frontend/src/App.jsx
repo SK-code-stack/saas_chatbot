@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './store/authStore'
 
+// Public Landing Page
+import LandingPage from './pages/LandingPage'
+
 // Auth pages
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
@@ -46,6 +49,9 @@ export default function App() {
       <BrowserRouter>
         <Toaster position="top-right" toastOptions={{ duration: 3500 }} />
         <Routes>
+          {/* Public Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Public auth routes */}
           <Route path="/login"           element={<Login />} />
           <Route path="/register"        element={<Register />} />
@@ -63,8 +69,7 @@ export default function App() {
           <Route path="/widget"     element={<PrivateRoute><WidgetCustomizer /></PrivateRoute>} />
 
           {/* Default redirect */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

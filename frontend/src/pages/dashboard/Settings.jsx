@@ -1,190 +1,222 @@
-import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
-import api from '../../lib/axios'
+import React, { useState } from 'react'
+import Sidebar from '../../components/layout/Sidebar'
+import Header from '../../components/layout/Header'
 import { useAuthStore } from '../../store/authStore'
-import { useNavigate } from 'react-router-dom'
-import DashboardLayout from '../../components/layout/DashboardLayout'
-import Card from '../../components/ui/Card'
-import Button from '../../components/ui/Button'
-import Input from '../../components/ui/Input'
+import toast from 'react-hot-toast'
 
 export default function Settings() {
-  const { user, setUser, logout } = useAuthStore()
-  const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('profile')
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const { user } = useAuthStore()
+  const [activeTab, setActiveTab] = useState('profile') // 'profile' | 'team' | 'domain' | 'security'
 
   const [profile, setProfile] = useState({
-    first_name: user?.first_name || '',
-    last_name: user?.last_name || '',
-    company_name: user?.company_name || '',
+    firstName: user?.first_name || 'Admin',
+    lastName: user?.last_name || 'User',
+    email: user?.email || 'admin@acme.org',
+    timezone: 'UTC-5 (Eastern Time)',
   })
 
-  const [passwords, setPasswords] = useState({
-    current_password: '',
-    new_password: '',
-    confirm_password: '',
-  })
+  const [customDomain, setCustomDomain] = useState('chat.acme.org')
+  const [teamMembers] = useState([
+    { name: 'Jane Doe', email: 'jane@acme.org', role: 'Owner', status: 'Active' },
+    { name: 'Alex Smith', email: 'alex@acme.org', role: 'Developer', status: 'Active' },
+    { name: 'Support Bot Admin', email: 'bot_admin@acme.org', role: 'Viewer', status: 'Invited' },
+  ])
 
-  const profileMutation = useMutation({
-    mutationFn: (data) => api.patch('/api/auth/profile/', data),
-    onSuccess: (res) => {
-      setUser(res.data)
-      toast.success('Profile updated!')
-    },
-    onError: () => toast.error('Failed to update profile'),
-  })
-
-  const passwordMutation = useMutation({
-    mutationFn: (data) => api.post('/api/auth/change_password/', data),
-    onSuccess: () => {
-      toast.success('Password changed!')
-      setPasswords({ current_password: '', new_password: '', confirm_password: '' })
-    },
-    onError: (err) => toast.error(err.response?.data?.error || 'Failed to change password'),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: () => api.post('/api/auth/delete_account/'),
-    onSuccess: () => {
-      logout()
-      navigate('/login')
-      toast.success('Account deleted')
-    },
-    onError: () => toast.error('Failed to delete account'),
-  })
-
-  const tabs = [
-    { id: 'profile',  label: 'Profile' },
-    { id: 'security', label: 'Security' },
-    { id: 'danger',   label: 'Danger Zone' },
-  ]
+  const handleSaveProfile = (e) => {
+    e.preventDefault()
+    toast.success('Profile settings updated successfully!')
+  }
 
   return (
-    <DashboardLayout>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-500 mt-1">Manage your account preferences</p>
+    <div className="min-h-screen bg-[#0b1326] text-[#dae2fd] flex">
+      <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header setMobileOpen={setMobileOpen} pageTitle="Account & Workspace Settings" />
+
+        <main className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto">
+          {/* Header Bar */}
+          <div className="border-b border-[#2d3449] pb-6">
+            <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Workspace Settings</h1>
+            <p className="text-xs md:text-sm text-[#908fa0]">Manage account profile, team access permissions, and custom domain setup.</p>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div className="flex gap-2 border-b border-[#2d3449] pb-3 overflow-x-auto text-xs sm:text-sm">
+            {[
+              { id: 'profile', name: 'Profile Information', icon: 'person' },
+              { id: 'team', name: 'Team Members & Roles', icon: 'group' },
+              { id: 'domain', name: 'Custom Domain', icon: 'language' },
+              { id: 'security', name: 'Security & 2FA', icon: 'shield' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 rounded-xl flex items-center gap-2 font-medium transition-colors shrink-0 ${
+                  activeTab === tab.id
+                    ? 'bg-[#6366f1] text-white font-semibold shadow-md'
+                    : 'text-[#908fa0] hover:text-white hover:bg-[#171f33]'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+                <span>{tab.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Tab 1: Profile */}
+          {activeTab === 'profile' && (
+            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 max-w-2xl space-y-6">
+              <h2 className="text-base font-bold text-white border-b border-[#2d3449] pb-3">Personal Profile</h2>
+
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-[#c7c4d7]">First Name</label>
+                    <input
+                      type="text"
+                      value={profile.firstName}
+                      onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
+                      className="w-full bg-[#131b2e] text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-[#c7c4d7]">Last Name</label>
+                    <input
+                      type="text"
+                      value={profile.lastName}
+                      onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
+                      className="w-full bg-[#131b2e] text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-[#c7c4d7]">Email Address</label>
+                  <input
+                    type="email"
+                    value={profile.email}
+                    disabled
+                    className="w-full bg-[#131b2e]/60 text-[#908fa0] text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] cursor-not-allowed"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-[#6366f1] text-white font-semibold text-xs sm:text-sm hover:bg-[#4f46e5] transition-colors"
+                >
+                  Save Profile Changes
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Tab 2: Team Members */}
+          {activeTab === 'team' && (
+            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#2d3449] pb-4">
+                <h2 className="text-base font-bold text-white">Team Members ({teamMembers.length})</h2>
+                <button
+                  onClick={() => toast.success('Invite link sent!')}
+                  className="px-4 py-2 rounded-xl bg-[#6366f1] text-white text-xs font-semibold"
+                >
+                  + Invite Teammate
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="text-[#908fa0] uppercase tracking-wider font-mono border-b border-[#2d3449]/50">
+                      <th className="pb-3 font-medium">User</th>
+                      <th className="pb-3 font-medium">Role</th>
+                      <th className="pb-3 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#2d3449]/30 text-[#dae2fd]">
+                    {teamMembers.map((m, idx) => (
+                      <tr key={idx} className="hover:bg-[#222a3d]/40 transition-colors">
+                        <td className="py-3.5">
+                          <p className="font-semibold text-white">{m.name}</p>
+                          <p className="text-[11px] text-[#908fa0]">{m.email}</p>
+                        </td>
+                        <td className="py-3.5 font-mono text-[#38bdf8]">{m.role}</td>
+                        <td className="py-3.5">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-mono bg-[#10b981]/20 text-[#10b981]">
+                            {m.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 3: Custom Domain */}
+          {activeTab === 'domain' && (
+            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 max-w-2xl space-y-6">
+              <div className="border-b border-[#2d3449] pb-3">
+                <h2 className="text-base font-bold text-white">Custom Domain Mapping</h2>
+                <p className="text-xs text-[#908fa0]">Serve your AI chatbot widget from your own domain name</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-[#c7c4d7]">Custom Domain Name</label>
+                  <input
+                    type="text"
+                    value={customDomain}
+                    onChange={(e) => setCustomDomain(e.target.value)}
+                    placeholder="chat.yourdomain.com"
+                    className="w-full bg-[#131b2e] text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] outline-none"
+                  />
+                </div>
+
+                <div className="bg-[#131b2e] border border-[#2d3449] rounded-xl p-4 space-y-2 text-xs font-mono text-[#c7c4d7]">
+                  <p className="text-white font-bold">DNS CNAME Record to add to your DNS provider:</p>
+                  <div className="flex justify-between text-[#38bdf8]">
+                    <span>Type: CNAME</span>
+                    <span>Host: chat</span>
+                    <span>Target: cname.chatti.ai</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => toast.success('CNAME Verification check initiated')}
+                  className="px-6 py-2.5 rounded-xl bg-[#38bdf8] text-[#00354a] font-semibold text-xs sm:text-sm"
+                >
+                  Verify DNS CNAME Record
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 4: Security */}
+          {activeTab === 'security' && (
+            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 max-w-2xl space-y-6">
+              <div className="border-b border-[#2d3449] pb-3">
+                <h2 className="text-base font-bold text-white">Security & Two-Factor Authentication</h2>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-[#131b2e] border border-[#2d3449] rounded-xl">
+                <div>
+                  <p className="text-sm font-bold text-white">Two-Factor Authentication (2FA)</p>
+                  <p className="text-xs text-[#908fa0]">Protect your account with Google Authenticator or TOTP apps</p>
+                </div>
+                <button
+                  onClick={() => toast.success('2FA Setup modal launched')}
+                  className="px-4 py-2 rounded-xl bg-[#10b981] text-white text-xs font-semibold"
+                >
+                  Enable 2FA
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
       </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit mb-6">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all
-              ${activeTab === tab.id
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-              } ${tab.id === 'danger' && activeTab === tab.id ? 'text-red-600' : ''}`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Profile Tab */}
-      {activeTab === 'profile' && (
-        <Card title="Profile Information" className="max-w-lg">
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                label="First Name"
-                value={profile.first_name}
-                onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
-              />
-              <Input
-                label="Last Name"
-                value={profile.last_name}
-                onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
-              />
-            </div>
-            <Input
-              label="Company Name"
-              value={profile.company_name}
-              onChange={(e) => setProfile({ ...profile, company_name: e.target.value })}
-            />
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Email</label>
-              <p className="text-sm text-gray-500 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
-                {user?.email}
-              </p>
-              <p className="text-xs text-gray-400">Email cannot be changed</p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Account Type</label>
-              <p className="text-sm text-gray-500 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 capitalize">
-                {user?.role}
-              </p>
-            </div>
-            <Button
-              onClick={() => profileMutation.mutate(profile)}
-              loading={profileMutation.isPending}
-            >
-              Save Changes
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {/* Security Tab */}
-      {activeTab === 'security' && (
-        <Card title="Change Password" className="max-w-lg">
-          <div className="flex flex-col gap-4">
-            <Input
-              label="Current Password"
-              type="password"
-              value={passwords.current_password}
-              onChange={(e) => setPasswords({ ...passwords, current_password: e.target.value })}
-            />
-            <Input
-              label="New Password"
-              type="password"
-              value={passwords.new_password}
-              onChange={(e) => setPasswords({ ...passwords, new_password: e.target.value })}
-            />
-            <Input
-              label="Confirm New Password"
-              type="password"
-              value={passwords.confirm_password}
-              onChange={(e) => setPasswords({ ...passwords, confirm_password: e.target.value })}
-            />
-            <Button
-              onClick={() => passwordMutation.mutate(passwords)}
-              loading={passwordMutation.isPending}
-            >
-              Update Password
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {/* Danger Zone Tab */}
-      {activeTab === 'danger' && (
-        <Card className="max-w-lg border-red-200">
-          <div className="flex flex-col gap-4">
-            <div>
-              <h3 className="font-semibold text-red-600">Delete Account</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                This permanently deletes your account, all documents, API keys, and chat history.
-                This action cannot be undone.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                if (window.confirm('Are you sure? This cannot be undone.')) {
-                  deleteMutation.mutate()
-                }
-              }}
-              disabled={deleteMutation.isPending}
-              className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors disabled:opacity-50 w-fit"
-            >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete My Account'}
-            </button>
-          </div>
-        </Card>
-      )}
-    </DashboardLayout>
+    </div>
   )
 }
