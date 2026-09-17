@@ -41,7 +41,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b1326] text-[#dae2fd] overflow-x-hidden selection:bg-[#6366f1]/30 selection:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0b1326] text-[#dae2fd] overflow-x-hidden selection:bg-[#6366f1]/30 selection:text-white">
       <Navbar />
 
       {/* Hero Section */}
@@ -52,7 +52,7 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
           {/* Hero Left Content */}
           <div className="lg:col-span-6 space-y-6">
-            <div className="inline-flex items-center gap-2 bg-[#171f33] border border-[#2d3449] px-4 py-1.5 rounded-full">
+            <div className="inline-flex items-center gap-2 bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] px-4 py-1.5 rounded-full">
               <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] animate-pulse" />
               <span className="text-xs font-mono font-medium text-[#10b981] uppercase tracking-wider">
                 Next-Gen RAG Engine v4.2
@@ -63,7 +63,7 @@ export default function LandingPage() {
               Supercharge Support & Workflows with AI Trained on <span className="bg-gradient-to-r from-[#6366f1] via-[#38bdf8] to-[#10b981] bg-clip-text text-transparent">Your Data</span>
             </h1>
 
-            <p className="text-base md:text-lg text-[#c7c4d7] max-w-xl leading-relaxed">
+            <p className="text-base md:text-lg text-slate-600 dark:text-[#c7c4d7] max-w-xl leading-relaxed">
               Deploy hyper-accurate, hallucination-free AI assistants in minutes. Ingest your docs, web links, and API workflows into a unified vector knowledge matrix.
             </p>
 
@@ -78,14 +78,14 @@ export default function LandingPage() {
               </Link>
               <Link
                 to="/login?role=developer"
-                className="px-6 py-3.5 rounded-xl bg-[#171f33] border border-[#2d3449] text-white font-semibold text-sm hover:bg-[#222a3d] transition-all flex items-center gap-2"
+                className="px-6 py-3.5 rounded-xl bg-slate-100 dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] text-slate-800 dark:text-white font-semibold text-sm hover:bg-slate-200 dark:hover:bg-[#222a3d] transition-all flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[18px]">code</span>
                 <span>Developer API Portal</span>
               </Link>
             </div>
 
-            <div className="flex flex-wrap items-center gap-6 pt-4 text-xs text-[#908fa0]">
+            <div className="flex flex-wrap items-center gap-6 pt-4 text-xs text-slate-500 dark:text-[#908fa0]">
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[#10b981] text-[18px]">check_circle</span>
                 <span>No credit card required</span>
@@ -103,9 +103,9 @@ export default function LandingPage() {
 
           {/* Hero Right: Live Interactive Widget Demo */}
           <div className="lg:col-span-6">
-            <div className="bg-[#171f33]/90 border border-[#2d3449] rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl flex flex-col h-[520px]">
+            <div className="bg-white dark:bg-[#171f33]/90 border border-slate-200 dark:border-[#2d3449] rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl flex flex-col h-[520px]">
               {/* Header */}
-              <div className="bg-[#222a3d] px-5 py-3.5 flex items-center justify-between border-b border-[#2d3449]">
+              <div className="bg-[#222a3d] px-5 py-3.5 flex items-center justify-between border-b border-slate-200 dark:border-[#2d3449]">
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="w-10 h-10 rounded-full bg-[#6366f1]/20 flex items-center justify-center text-[#6366f1] font-bold text-sm">
@@ -118,7 +118,7 @@ export default function LandingPage() {
                     <p className="text-[11px] text-[#10b981] font-mono">Online • Trained on 1.4k vector chunks</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-[#908fa0]">
+                <div className="flex items-center gap-2 text-slate-500 dark:text-[#908fa0]">
                   <span className="material-symbols-outlined text-[18px]">tune</span>
                   <span className="material-symbols-outlined text-[18px]">close</span>
                 </div>
@@ -131,13 +131,13 @@ export default function LandingPage() {
                     key={idx}
                     className={`flex gap-3 max-w-[88%] ${msg.sender === 'user' ? 'ml-auto flex-row-reverse' : ''}`}
                   >
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${msg.sender === 'user' ? 'bg-[#222a3d] text-[#c7c4d7]' : 'bg-[#6366f1] text-white'}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${msg.sender === 'user' ? 'bg-slate-200 dark:bg-[#222a3d] text-slate-700 dark:text-[#c7c4d7]' : 'bg-[#6366f1] text-white'}`}>
                       {msg.sender === 'user' ? 'U' : 'AI'}
                     </div>
                     <div className={`p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
                       msg.sender === 'user'
-                        ? 'bg-[#222a3d] text-white rounded-tr-none'
-                        : 'bg-[#6366f1]/10 border border-[#6366f1]/20 text-[#dae2fd] rounded-tl-none space-y-2'
+                        ? 'bg-slate-200 dark:bg-[#222a3d] text-slate-900 dark:text-white rounded-tr-none'
+                        : 'bg-[#6366f1]/10 border border-[#6366f1]/20 text-slate-700 dark:text-[#dae2fd] rounded-tl-none space-y-2'
                     }`}>
                       <p>{msg.text}</p>
                       {msg.code && (
@@ -157,13 +157,13 @@ export default function LandingPage() {
               </div>
 
               {/* Input Form */}
-              <form onSubmit={handleSendTestMessage} className="p-3 bg-[#171f33] border-t border-[#2d3449] flex items-center gap-2">
+              <form onSubmit={handleSendTestMessage} className="p-3 bg-white dark:bg-[#171f33] border-t border-slate-200 dark:border-[#2d3449] flex items-center gap-2">
                 <input
                   type="text"
                   value={testQuestion}
                   onChange={(e) => setTestQuestion(e.target.value)}
                   placeholder="Type a message to test the AI RAG engine..."
-                  className="flex-1 bg-[#131b2e] text-white text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-[#908fa0]"
+                  className="flex-1 bg-[#131b2e] text-white text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-slate-400 dark:placeholder-[#908fa0]"
                 />
                 <button
                   type="submit"
@@ -178,23 +178,23 @@ export default function LandingPage() {
       </section>
 
       {/* Social Proof & Metrics */}
-      <section className="py-12 bg-[#131b2e]/60 border-y border-[#2d3449]">
+      <section className="py-12 bg-slate-100/60 dark:bg-[#131b2e]/60 border-y border-[#2d3449]">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
           <div>
             <p className="text-3xl md:text-4xl font-extrabold text-white">99.9%</p>
-            <p className="text-xs text-[#908fa0] uppercase tracking-wider mt-1">Uptime SLA Guaranteed</p>
+            <p className="text-xs text-slate-500 dark:text-[#908fa0] uppercase tracking-wider mt-1">Uptime SLA Guaranteed</p>
           </div>
           <div>
             <p className="text-3xl md:text-4xl font-extrabold text-[#38bdf8]">50M+</p>
-            <p className="text-xs text-[#908fa0] uppercase tracking-wider mt-1">Vector Queries Processed</p>
+            <p className="text-xs text-slate-500 dark:text-[#908fa0] uppercase tracking-wider mt-1">Vector Queries Processed</p>
           </div>
           <div>
             <p className="text-3xl md:text-4xl font-extrabold text-[#10b981]">10x</p>
-            <p className="text-xs text-[#908fa0] uppercase tracking-wider mt-1">Faster Support Responses</p>
+            <p className="text-xs text-slate-500 dark:text-[#908fa0] uppercase tracking-wider mt-1">Faster Support Responses</p>
           </div>
           <div>
             <p className="text-3xl md:text-4xl font-extrabold text-[#6366f1]">&lt; 250ms</p>
-            <p className="text-xs text-[#908fa0] uppercase tracking-wider mt-1">Average RAG Latency</p>
+            <p className="text-xs text-slate-500 dark:text-[#908fa0] uppercase tracking-wider mt-1">Average RAG Latency</p>
           </div>
         </div>
       </section>
@@ -203,12 +203,12 @@ export default function LandingPage() {
       <section id="features" className="py-24 px-6 max-w-7xl mx-auto space-y-16">
         <div className="text-center max-w-3xl mx-auto space-y-4">
           <h2 className="text-3xl md:text-4xl font-bold text-white">Built for Business Growth & Developer Power</h2>
-          <p className="text-[#c7c4d7] text-sm md:text-base">Whether you want a zero-code plug-and-play chat widget or raw REST API endpoints, Chatti AI provides tailored experiences.</p>
+          <p className="text-slate-600 dark:text-[#c7c4d7] text-sm md:text-base">Whether you want a zero-code plug-and-play chat widget or raw REST API endpoints, Chatti AI provides tailored experiences.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Card 1: Business Owner */}
-          <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-8 hover:border-[#6366f1]/50 transition-all space-y-6 group">
+          <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-8 hover:border-[#6366f1]/50 transition-all space-y-6 group">
             <div className="w-12 h-12 rounded-xl bg-[#6366f1]/20 border border-[#6366f1]/30 flex items-center justify-center text-[#6366f1]">
               <span className="material-symbols-outlined text-[28px]">domain</span>
             </div>
@@ -216,7 +216,7 @@ export default function LandingPage() {
               <span className="text-xs font-mono font-medium text-[#6366f1] uppercase tracking-wider">For Business Owners</span>
               <h3 className="text-2xl font-bold text-white mt-1">No-Code Chatbot Builder & Analytics</h3>
             </div>
-            <ul className="space-y-3 text-sm text-[#c7c4d7]">
+            <ul className="space-y-3 text-sm text-slate-600 dark:text-[#c7c4d7]">
               <li className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[#10b981] text-[18px]">check_circle</span>
                 <span>Visual Widget Studio with live color & logo customizer</span>
@@ -240,7 +240,7 @@ export default function LandingPage() {
           </div>
 
           {/* Card 2: Developer */}
-          <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-8 hover:border-[#38bdf8]/50 transition-all space-y-6 group">
+          <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-8 hover:border-[#38bdf8]/50 transition-all space-y-6 group">
             <div className="w-12 h-12 rounded-xl bg-[#38bdf8]/20 border border-[#38bdf8]/30 flex items-center justify-center text-[#38bdf8]">
               <span className="material-symbols-outlined text-[28px]">code</span>
             </div>
@@ -248,7 +248,7 @@ export default function LandingPage() {
               <span className="text-xs font-mono font-medium text-[#38bdf8] uppercase tracking-wider">For Developers</span>
               <h3 className="text-2xl font-bold text-white mt-1">Developer API, Webhooks & RAG SDK</h3>
             </div>
-            <ul className="space-y-3 text-sm text-[#c7c4d7]">
+            <ul className="space-y-3 text-sm text-slate-600 dark:text-[#c7c4d7]">
               <li className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[#38bdf8] text-[18px]">check_circle</span>
                 <span>REST API with scoped API Keys (`sk_live_...`)</span>
@@ -274,22 +274,22 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-24 bg-[#131b2e]/40 border-t border-[#2d3449] px-6">
+      <section id="pricing" className="py-24 bg-slate-100/50 dark:bg-[#131b2e]/40 border-t border-slate-200 dark:border-[#2d3449] px-6">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center space-y-4">
             <h2 className="text-3xl md:text-4xl font-bold text-white">Simple, Transparent Pricing</h2>
-            <p className="text-[#c7c4d7] text-sm md:text-base">Choose the plan that fits your business or app scale. Cancel anytime.</p>
+            <p className="text-slate-600 dark:text-[#c7c4d7] text-sm md:text-base">Choose the plan that fits your business or app scale. Cancel anytime.</p>
 
             {/* Monthly / Yearly Toggle */}
             <div className="flex items-center justify-center gap-4 pt-4">
-              <span className={`text-sm ${!isAnnual ? 'text-white font-semibold' : 'text-[#908fa0]'}`}>Monthly Billing</span>
+              <span className={`text-sm ${!isAnnual ? 'text-white font-semibold' : 'text-slate-500 dark:text-[#908fa0]'}`}>Monthly Billing</span>
               <button
                 onClick={() => setIsAnnual(!isAnnual)}
-                className={`w-14 h-8 rounded-full p-1 transition-colors ${isAnnual ? 'bg-[#6366f1]' : 'bg-[#222a3d]'}`}
+                className={`w-14 h-8 rounded-full p-1 transition-colors ${isAnnual ? 'bg-[#6366f1]' : 'bg-slate-200 dark:bg-[#222a3d]'}`}
               >
                 <div className={`w-6 h-6 rounded-full bg-white transition-transform ${isAnnual ? 'translate-x-6' : 'translate-x-0'}`} />
               </button>
-              <span className={`text-sm ${isAnnual ? 'text-white font-semibold' : 'text-[#908fa0]'} flex items-center gap-1.5`}>
+              <span className={`text-sm ${isAnnual ? 'text-white font-semibold' : 'text-slate-500 dark:text-[#908fa0]'} flex items-center gap-1.5`}>
                 Annual Billing
                 <span className="px-2 py-0.5 text-[10px] font-mono bg-[#10b981]/20 text-[#10b981] rounded-full border border-[#10b981]/30">Save 20%</span>
               </span>
@@ -298,37 +298,37 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Starter Plan */}
-            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-8 space-y-6 flex flex-col justify-between">
+            <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-8 space-y-6 flex flex-col justify-between">
               <div className="space-y-4">
                 <h3 className="text-xl font-bold text-white">Starter</h3>
-                <p className="text-xs text-[#908fa0]">Perfect for small business websites and testing.</p>
+                <p className="text-xs text-slate-500 dark:text-[#908fa0]">Perfect for small business websites and testing.</p>
                 <div className="text-3xl font-extrabold text-white">
-                  ${isAnnual ? '24' : '29'} <span className="text-xs font-normal text-[#908fa0]">/ month</span>
+                  ${isAnnual ? '24' : '29'} <span className="text-xs font-normal text-slate-500 dark:text-[#908fa0]">/ month</span>
                 </div>
-                <ul className="space-y-2.5 text-xs text-[#c7c4d7] pt-4 border-t border-[#2d3449]">
+                <ul className="space-y-2.5 text-xs text-slate-600 dark:text-[#c7c4d7] pt-4 border-t border-slate-200 dark:border-[#2d3449]">
                   <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[#10b981] text-[16px]">check</span> 5,000 Messages / mo</li>
                   <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[#10b981] text-[16px]">check</span> 10 Vector Knowledge Docs</li>
                   <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[#10b981] text-[16px]">check</span> Standard Widget Customizer</li>
                   <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[#10b981] text-[16px]">check</span> Community Support</li>
                 </ul>
               </div>
-              <Link to="/register?plan=starter" className="w-full py-3 text-center rounded-xl bg-[#222a3d] hover:bg-[#31394d] text-white font-semibold text-xs transition-colors">
+              <Link to="/register?plan=starter" className="w-full py-3 text-center rounded-xl bg-slate-200 dark:bg-[#222a3d] hover:bg-slate-300 dark:hover:bg-[#31394d] text-slate-800 dark:text-white font-semibold text-xs transition-colors">
                 Start 14-Day Free Trial
               </Link>
             </div>
 
             {/* Pro Plan (Featured) */}
-            <div className="bg-[#171f33] border-2 border-[#6366f1] rounded-2xl p-8 space-y-6 flex flex-col justify-between relative shadow-2xl shadow-[#6366f1]/20">
+            <div className="bg-white dark:bg-[#171f33] border-2 border-[#6366f1] rounded-2xl p-8 space-y-6 flex flex-col justify-between relative shadow-2xl shadow-[#6366f1]/20">
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#6366f1] text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-md">
                 Most Popular
               </div>
               <div className="space-y-4">
                 <h3 className="text-xl font-bold text-white">Pro Scale</h3>
-                <p className="text-xs text-[#908fa0]">For growing businesses requiring custom AI and Stripe billing.</p>
+                <p className="text-xs text-slate-500 dark:text-[#908fa0]">For growing businesses requiring custom AI and Stripe billing.</p>
                 <div className="text-3xl font-extrabold text-white">
-                  ${isAnnual ? '79' : '99'} <span className="text-xs font-normal text-[#908fa0]">/ month</span>
+                  ${isAnnual ? '79' : '99'} <span className="text-xs font-normal text-slate-500 dark:text-[#908fa0]">/ month</span>
                 </div>
-                <ul className="space-y-2.5 text-xs text-[#c7c4d7] pt-4 border-t border-[#2d3449]">
+                <ul className="space-y-2.5 text-xs text-slate-600 dark:text-[#c7c4d7] pt-4 border-t border-slate-200 dark:border-[#2d3449]">
                   <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[#10b981] text-[16px]">check</span> 50,000 Messages / mo</li>
                   <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[#10b981] text-[16px]">check</span> Unlimited Vector Documents</li>
                   <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[#10b981] text-[16px]">check</span> Full Branding Customizer</li>
@@ -342,19 +342,19 @@ export default function LandingPage() {
             </div>
 
             {/* Enterprise Plan */}
-            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-8 space-y-6 flex flex-col justify-between">
+            <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-8 space-y-6 flex flex-col justify-between">
               <div className="space-y-4">
                 <h3 className="text-xl font-bold text-white">Enterprise</h3>
-                <p className="text-xs text-[#908fa0]">Custom vector pipelines and dedicated infrastructure.</p>
+                <p className="text-xs text-slate-500 dark:text-[#908fa0]">Custom vector pipelines and dedicated infrastructure.</p>
                 <div className="text-3xl font-extrabold text-white">Custom</div>
-                <ul className="space-y-2.5 text-xs text-[#c7c4d7] pt-4 border-t border-[#2d3449]">
+                <ul className="space-y-2.5 text-xs text-slate-600 dark:text-[#c7c4d7] pt-4 border-t border-slate-200 dark:border-[#2d3449]">
                   <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[#10b981] text-[16px]">check</span> Unlimited Messages & Storage</li>
                   <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[#10b981] text-[16px]">check</span> Dedicated Vector DB Instances</li>
                   <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[#10b981] text-[16px]">check</span> Custom SLA & 24/7 Phone Support</li>
                   <li className="flex items-center gap-2"><span className="material-symbols-outlined text-[#10b981] text-[16px]">check</span> On-Prem / VPC Deployment</li>
                 </ul>
               </div>
-              <button className="w-full py-3 text-center rounded-xl bg-[#222a3d] hover:bg-[#31394d] text-white font-semibold text-xs transition-colors">
+              <button className="w-full py-3 text-center rounded-xl bg-slate-200 dark:bg-[#222a3d] hover:bg-slate-300 dark:hover:bg-[#31394d] text-slate-800 dark:text-white font-semibold text-xs transition-colors">
                 Contact Enterprise Sales
               </button>
             </div>
@@ -363,8 +363,8 @@ export default function LandingPage() {
       </section>
 
       {/* Modern Footer */}
-      <footer className="bg-[#060e20] border-t border-[#2d3449] py-12 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-[#908fa0]">
+      <footer className="bg-slate-900 dark:bg-[#060e20] border-t border-slate-700 dark:border-[#2d3449] py-12 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-slate-500 dark:text-[#908fa0]">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg bg-[#6366f1] flex items-center justify-center text-white font-bold text-xs">AI</div>
             <span className="font-semibold text-white">Chatti AI Platform</span>

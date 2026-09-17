@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import Sidebar from '../../components/layout/Sidebar'
 import Header from '../../components/layout/Header'
+import StepBanner from '../../components/ui/StepBanner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import api from '../../lib/axios'
@@ -11,8 +12,8 @@ export default function APIKeys() {
   const [showModal, setShowModal] = useState(false)
   const [createdKeyData, setCreatedKeyData] = useState(null)
   const [copiedKeyId, setCopiedKeyId] = useState(null)
-  const [activeCodeLang, setActiveCodeLang] = useState('curl')
-  const [webhookUrl, setWebhookUrl] = useState('')
+  const [activeCodeLang, setActiveCodeLang] = useState('script')
+  const [copiedEmbed, setCopiedEmbed] = useState(false)
 
   const queryClient = useQueryClient()
 
@@ -26,14 +27,13 @@ export default function APIKeys() {
       } catch (e) {
         console.warn('API Keys endpoint fallback', e)
         return [
-          { id: '1', name: 'Production Support Bot Key', key_prefix: 'sk_live_9f8a42b109c84e12a', created_at: '2026-09-01', is_active: true },
-          { id: '2', name: 'Development Sandbox Key', key_prefix: 'sk_test_7a12b9841029c7810', created_at: '2026-09-10', is_active: true },
+          { id: '1', name: 'Production Website Key', key_prefix: 'sk_live_9f8a42b109c84e12a', created_at: '2026-09-01', is_active: true },
+          { id: '2', name: 'Development Key', key_prefix: 'sk_test_7a12b9841029c7810', created_at: '2026-09-10', is_active: false },
         ]
       }
     },
   })
 
-  // Ensure keys is an array
   const keys = Array.isArray(keysData) ? keysData : (keysData?.results || [])
 
   // Create Key Mutation
@@ -42,7 +42,7 @@ export default function APIKeys() {
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['api-keys'] })
       setCreatedKeyData(res.data)
-      toast.success('New API Key generated successfully!')
+      toast.success('New Key created successfully!')
       setNewKeyName('')
     },
     onError: (err) => {
@@ -50,154 +50,197 @@ export default function APIKeys() {
     },
   })
 
-  // Revoke Key Mutation
+  // Revoke Key Mutation — optimistic: flip is_active to false instantly
   const revokeMutation = useMutation({
     mutationFn: (id) => api.post(`/api/keys/${id}/revoke/`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['api-keys'] })
-      toast.success('API Key revoked')
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['api-keys'] })
+      const prev = queryClient.getQueryData(['api-keys'])
+      queryClient.setQueryData(['api-keys'], (old) =>
+        Array.isArray(old)
+          ? old.map((k) => String(k.id) === String(id) ? { ...k, is_active: false } : k)
+          : old
+      )
+      toast.success('Key revoked!')
+      return { prev }
     },
+    onError: (err, _id, ctx) => {
+      queryClient.setQueryData(['api-keys'], ctx?.prev)
+      toast.error(err.response?.data?.error || 'Failed to revoke key')
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['api-keys'] }),
+  })
+
+  // Delete Key Mutation — optimistic: remove row instantly, rollback on error
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/api/keys/${id}/`),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['api-keys'] })
+      const prev = queryClient.getQueryData(['api-keys'])
+      queryClient.setQueryData(['api-keys'], (old) =>
+        Array.isArray(old) ? old.filter((k) => String(k.id) !== String(id)) : old
+      )
+      toast.success('Key permanently deleted!')
+      return { prev }
+    },
+    onError: (err, _id, ctx) => {
+      queryClient.setQueryData(['api-keys'], ctx?.prev)
+      toast.error(err.response?.data?.error || 'Failed to delete key')
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['api-keys'] }),
   })
 
   const copyToClipboard = (text, id) => {
     if (!text) return
     navigator.clipboard.writeText(String(text))
     setCopiedKeyId(id)
-    toast.success('Key copied to clipboard!')
+    toast.success('Copied to clipboard!')
     setTimeout(() => setCopiedKeyId(null), 2000)
   }
 
-  const codeSnippets = {
-    curl: `curl -X POST https://api.chatti.ai/v1/chat/completions \\
-  -H "Authorization: Bearer sk_live_..." \\
+  const embedScriptCode = `<script
+  src="https://cdn.chatti.ai/widget.js"
+  data-api-key="sk_live_9f8a42b109c84e12a"
+  async>
+</script>`
+
+  const apiCurlCode = `curl -X POST https://api.chatti.ai/v1/chat/completions \\
+  -H "Authorization: Bearer sk_live_9f8a42b109c84e12a" \\
   -H "Content-Type: application/json" \\
-  -d '{"messages": [{"role": "user", "content": "How do I setup webhooks?"}]}'`,
-    python: `import requests
-
-url = "https://api.chatti.ai/v1/chat/completions"
-headers = {
-    "Authorization": "Bearer sk_live_...",
-    "Content-Type": "application/json"
-}
-payload = {"messages": [{"role": "user", "content": "How do I setup webhooks?"}]}
-
-response = requests.post(url, json=payload, headers=headers)
-print(response.json())`,
-    js: `fetch("https://api.chatti.ai/v1/chat/completions", {
-  method: "POST",
-  headers: {
-    "Authorization": "Bearer sk_live_...",
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    messages: [{ role: "user", content: "How do I setup webhooks?" }]
-  })
-})
-.then(res => res.json())
-.then(data => console.log(data));`,
-  }
+  -d '{"messages": [{"role": "user", "content": "Hello bot!"}]}'`
 
   return (
-    <div className="min-h-screen bg-[#0b1326] text-[#dae2fd] flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0b1326] text-slate-800 dark:text-[#dae2fd] flex transition-colors duration-200">
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <Header setMobileOpen={setMobileOpen} pageTitle="Developer Hub & API Keys" />
+        <Header setMobileOpen={setMobileOpen} pageTitle="Step 4: Website Code & Keys" />
 
-        <main className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto">
-          {/* Header Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2d3449] pb-6">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">API Key Management</h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30">
-                  Live Mode
-                </span>
+        <main className="flex-1 p-4 md:p-8 space-y-6 overflow-y-auto">
+          {/* Step 4 Banner */}
+          <StepBanner
+            stepNumber={4}
+            title="Put Your AI Chatbot On Your Website"
+            description="Copy the 1-line script tag below and paste it into your website HTML before the </body> tag. Your live AI chatbot will instantly appear!"
+            nextPath="/dashboard"
+            nextText="Back to Dashboard Overview →"
+          />
+
+          {/* 1-Click Embed Code Box */}
+          <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-6 space-y-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#2d3449] pb-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">1-Click Website Embed Code</h2>
+                <p className="text-xs text-slate-500 dark:text-[#908fa0]">Paste this code anywhere on your HTML, WordPress, Shopify, or Webflow site</p>
               </div>
-              <p className="text-xs md:text-sm text-[#908fa0]">Generate, manage, and audit API keys for integrating RAG endpoints into custom apps.</p>
+
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(embedScriptCode)
+                  setCopiedEmbed(true)
+                  toast.success('Website embed code copied!')
+                  setTimeout(() => setCopiedEmbed(false), 2000)
+                }}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+              >
+                <span className="material-symbols-outlined text-[18px]">content_copy</span>
+                <span>{copiedEmbed ? 'Code Copied!' : 'Copy 1-Click Code'}</span>
+              </button>
             </div>
 
-            <button
-              onClick={() => {
-                setCreatedKeyData(null)
-                setShowModal(true)
-              }}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#38bdf8] text-white font-semibold text-xs md:text-sm shadow-lg shadow-[#6366f1]/25 hover:opacity-95 transition-all flex items-center justify-center gap-2 self-start sm:self-auto"
-            >
-              <span className="material-symbols-outlined text-[18px]">key</span>
-              <span>+ Generate New API Key</span>
-            </button>
-          </div>
-
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-5 space-y-2">
-              <span className="text-xs font-medium text-[#908fa0]">Total API Requests (30d)</span>
-              <p className="text-2xl font-bold text-white">482,910</p>
-              <p className="text-[11px] text-[#10b981] font-mono">↑ +18.4% vs last month</p>
-            </div>
-            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-5 space-y-2">
-              <span className="text-xs font-medium text-[#908fa0]">Average Latency</span>
-              <p className="text-2xl font-bold text-[#38bdf8]">218 ms</p>
-              <p className="text-[11px] text-[#908fa0] font-mono">Global edge distribution</p>
-            </div>
-            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-5 space-y-2">
-              <span className="text-xs font-medium text-[#908fa0]">Error Rate</span>
-              <p className="text-2xl font-bold text-[#10b981]">0.02%</p>
-              <p className="text-[11px] text-[#10b981] font-mono">All systems nominal</p>
-            </div>
+            <pre className="bg-slate-900 text-sky-300 p-4 rounded-xl text-xs font-mono overflow-x-auto border border-slate-800">
+              {embedScriptCode}
+            </pre>
           </div>
 
           {/* API Keys Table */}
-          <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#2d3449] pb-4">
-              <h2 className="text-base font-bold text-white">Active API Keys</h2>
-              <span className="text-xs text-[#908fa0] font-mono">{keys.length} Keys Configured</span>
+          <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-6 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2d3449] pb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Website Secret Keys</h3>
+                <p className="text-xs text-slate-500 dark:text-[#908fa0]">Manage active and revoked keys. Revoked keys can be deleted using the trash bucket icon.</p>
+              </div>
+              <button
+                onClick={() => {
+                  setCreatedKeyData(null)
+                  setShowModal(true)
+                }}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">key</span>
+                <span>+ Create Secret Key</span>
+              </button>
             </div>
 
             {isLoading ? (
-              <div className="text-center py-8 text-xs text-[#908fa0]">Loading keys...</div>
+              <div className="text-center py-8 text-xs text-slate-400">Loading keys...</div>
             ) : keys.length === 0 ? (
-              <div className="text-center py-8 text-xs text-[#908fa0]">No API keys found. Click "+ Generate New API Key" above.</div>
+              <div className="text-center py-8 text-xs text-slate-400">No secret keys created yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="text-[#908fa0] uppercase tracking-wider font-mono border-b border-[#2d3449]/50">
-                      <th className="pb-3 font-medium">Key Name</th>
-                      <th className="pb-3 font-medium">API Key Prefix / Token</th>
-                      <th className="pb-3 font-medium">Created Date</th>
-                      <th className="pb-3 font-medium">Status</th>
-                      <th className="pb-3 font-medium text-right">Actions</th>
+                    <tr className="text-slate-400 dark:text-slate-500 dark:text-[#908fa0] uppercase tracking-wider font-semibold border-b border-slate-100 dark:border-[#2d3449]">
+                      <th className="pb-3">Key Name</th>
+                      <th className="pb-3">Key Prefix</th>
+                      <th className="pb-3">Created Date</th>
+                      <th className="pb-3">Status</th>
+                      <th className="pb-3 text-right">Actions & Delete Bucket</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#2d3449]/30 text-[#dae2fd]">
+                  <tbody className="divide-y divide-slate-100 dark:divide-[#2d3449]/40 text-slate-700 dark:text-[#dae2fd]">
                     {keys.map((k) => {
-                      const keyString = k.raw_key || k.key || (k.key_prefix ? `${k.key_prefix}••••••••` : `sk_live_id_${k.id}`)
+                      const keyString = k.raw_key || k.key || (k.key_prefix ? `${k.key_prefix}••••••••` : `sk_live_${k.id}`)
+                      const isRevoked = k.is_active === false
                       return (
-                        <tr key={String(k.id)} className="hover:bg-[#222a3d]/40 transition-colors">
-                          <td className="py-3.5 font-semibold text-white">{k.name || 'API Key'}</td>
-                          <td className="py-3.5 font-mono text-[#38bdf8]">{keyString}</td>
-                          <td className="py-3.5 text-[#908fa0]">{k.created_at ? new Date(k.created_at).toLocaleDateString() : 'Recently'}</td>
+                        <tr key={String(k.id)} className="hover:bg-slate-50 dark:hover:bg-slate-50 dark:hover:bg-[#222a3d]/40 transition-colors">
+                          <td className="py-3.5 font-bold text-slate-900 dark:text-white">{k.name || 'Website Key'}</td>
+                          <td className="py-3.5 font-mono text-indigo-600 dark:text-[#38bdf8] font-bold">{keyString}</td>
+                          <td className="py-3.5 text-slate-400">{k.created_at ? new Date(k.created_at).toLocaleDateString() : 'Recently'}</td>
                           <td className="py-3.5">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono ${
-                              k.is_active !== false ? 'bg-[#10b981]/20 text-[#10b981]' : 'bg-red-500/20 text-red-400'
-                            }`}>
-                              {k.is_active !== false ? 'Active' : 'Revoked'}
-                            </span>
+                            {!isRevoked ? (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-[#10b981]/20 text-emerald-700 dark:text-[#10b981] border border-emerald-200 dark:border-[#10b981]/30">
+                                Active
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/30">
+                                Revoked
+                              </span>
+                            )}
                           </td>
                           <td className="py-3.5 text-right space-x-2">
                             <button
                               onClick={() => copyToClipboard(keyString, k.id)}
-                              className="px-2.5 py-1 rounded-lg bg-[#131b2e] border border-[#2d3449] hover:bg-[#31394d] text-white text-[11px] transition-colors"
+                              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-[#131b2e] border border-slate-200 dark:border-[#2d3449] hover:bg-slate-200 dark:hover:bg-[#31394d] text-slate-800 dark:text-white text-[11px] font-bold transition-colors cursor-pointer"
                             >
                               {copiedKeyId === k.id ? 'Copied!' : 'Copy Key'}
                             </button>
+
+                            {!isRevoked ? (
+                              <button
+                                onClick={() => revokeMutation.mutate(k.id)}
+                                className="px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-200 text-[11px] font-bold transition-colors cursor-pointer"
+                              >
+                                Revoke
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => deleteMutation.mutate(k.id)}
+                                title="Delete key permanently"
+                                className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center gap-1 shadow-sm"
+                              >
+                                <span className="material-symbols-outlined text-[15px]">delete</span>
+                                <span>Delete Key</span>
+                              </button>
+                            )}
+
+                            {/* Trash Bucket Icon for instant deletion */}
                             <button
-                              onClick={() => revokeMutation.mutate(k.id)}
-                              className="px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 text-[11px] transition-colors"
+                              onClick={() => deleteMutation.mutate(k.id)}
+                              title="Delete Bucket — Delete Key Permanently"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 border border-transparent hover:border-red-200 dark:hover:border-red-500/30 transition-all cursor-pointer inline-flex items-center"
                             >
-                              Revoke
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
                             </button>
                           </td>
                         </tr>
@@ -209,70 +252,44 @@ print(response.json())`,
             )}
           </div>
 
-          {/* Interactive Quickstart Viewer */}
-          <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#2d3449] pb-4">
+          {/* Developer REST API Code Viewer */}
+          <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-6 space-y-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#2d3449] pb-4">
               <div>
-                <h2 className="text-base font-bold text-white">Developer Quickstart Code Viewer</h2>
-                <p className="text-xs text-[#908fa0]">Send your first request to the RAG model endpoint</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Developer REST API Code</h3>
+                <p className="text-xs text-slate-500 dark:text-[#908fa0]">For developers connecting custom mobile apps or servers</p>
               </div>
 
               <div className="flex gap-2 text-xs">
                 <button
+                  onClick={() => setActiveCodeLang('script')}
+                  className={`px-3 py-1.5 rounded-lg font-bold ${activeCodeLang === 'script' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-[#131b2e] text-slate-600 dark:text-[#908fa0]'}`}
+                >
+                  Embed HTML
+                </button>
+                <button
                   onClick={() => setActiveCodeLang('curl')}
-                  className={`px-3 py-1.5 rounded-lg ${activeCodeLang === 'curl' ? 'bg-[#6366f1] text-white font-semibold' : 'bg-[#131b2e] text-[#908fa0]'}`}
+                  className={`px-3 py-1.5 rounded-lg font-bold ${activeCodeLang === 'curl' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-[#131b2e] text-slate-600 dark:text-[#908fa0]'}`}
                 >
-                  cURL
-                </button>
-                <button
-                  onClick={() => setActiveCodeLang('python')}
-                  className={`px-3 py-1.5 rounded-lg ${activeCodeLang === 'python' ? 'bg-[#6366f1] text-white font-semibold' : 'bg-[#131b2e] text-[#908fa0]'}`}
-                >
-                  Python
-                </button>
-                <button
-                  onClick={() => setActiveCodeLang('js')}
-                  className={`px-3 py-1.5 rounded-lg ${activeCodeLang === 'js' ? 'bg-[#6366f1] text-white font-semibold' : 'bg-[#131b2e] text-[#908fa0]'}`}
-                >
-                  JavaScript
+                  cURL Request
                 </button>
               </div>
             </div>
 
-            <pre className="bg-[#060e20] p-4 rounded-xl text-xs font-mono text-[#38bdf8] overflow-x-auto border border-[#2d3449]">
-              {codeSnippets[activeCodeLang]}
+            <pre className="bg-slate-900 text-sky-300 p-4 rounded-xl text-xs font-mono overflow-x-auto border border-slate-800">
+              {activeCodeLang === 'script' ? embedScriptCode : apiCurlCode}
             </pre>
-          </div>
-
-          {/* Webhooks Section */}
-          <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white">Webhook Integration Endpoint</h2>
-            <form onSubmit={(e) => { e.preventDefault(); toast.success('Webhook endpoint configured!'); }} className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="url"
-                value={webhookUrl}
-                onChange={(e) => setWebhookUrl(e.target.value)}
-                placeholder="https://yourdomain.com/webhooks/chatti"
-                className="flex-1 bg-[#131b2e] text-white text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-[#908fa0]"
-              />
-              <button
-                type="submit"
-                className="px-6 py-2.5 rounded-xl bg-[#6366f1] text-white font-semibold text-xs sm:text-sm hover:bg-[#4f46e5] transition-colors"
-              >
-                Save Webhook Endpoint
-              </button>
-            </form>
           </div>
         </main>
       </div>
 
       {/* Generate Key Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-          <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#2d3449] pb-3">
-              <h3 className="text-lg font-bold text-white">Generate New API Key</h3>
-              <button onClick={() => setShowModal(false)} className="text-[#908fa0] hover:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2d3449] pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Create New Secret Key</h3>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
@@ -280,39 +297,39 @@ print(response.json())`,
             {!createdKeyData ? (
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#c7c4d7]">Key Identifier Name</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-600 dark:text-[#c7c4d7]">Key Name</label>
                   <input
                     type="text"
                     value={newKeyName}
                     onChange={(e) => setNewKeyName(e.target.value)}
-                    placeholder="e.g. Production Mobile App"
-                    className="w-full bg-[#131b2e] text-white text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] outline-none focus:border-[#6366f1]"
+                    placeholder="e.g. My Online Store Website"
+                    className="w-full bg-slate-50 dark:bg-[#131b2e] text-slate-900 dark:text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#2d3449] outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div className="flex justify-end gap-3 pt-2">
                   <button
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 rounded-xl bg-[#131b2e] text-[#908fa0] text-xs hover:text-white"
+                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#131b2e] text-slate-600 dark:text-[#908fa0] text-xs font-bold"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={() => createMutation.mutate({ name: newKeyName || 'New API Key' })}
+                    onClick={() => createMutation.mutate({ name: newKeyName || 'Website Key' })}
                     disabled={createMutation.isPending}
-                    className="px-5 py-2 rounded-xl bg-[#6366f1] text-white font-semibold text-xs shadow-md hover:bg-[#4f46e5]"
+                    className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md"
                   >
-                    {createMutation.isPending ? 'Generating...' : 'Create Key'}
+                    {createMutation.isPending ? 'Creating...' : 'Create Key'}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="p-3 bg-[#10b981]/10 border border-[#10b981]/30 rounded-xl text-xs text-[#10b981] font-mono">
-                  {createdKeyData.warning || 'Save this secret key now. It will not be shown again.'}
+                <div className="p-3 bg-emerald-100 dark:bg-[#10b981]/10 border border-emerald-300 dark:border-[#10b981]/30 rounded-xl text-xs text-emerald-800 dark:text-[#10b981] font-medium">
+                  {createdKeyData.warning || 'Copy this key secret now. It will not be shown again.'}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-[#c7c4d7]">Generated Raw Key Secret</label>
-                  <div className="p-3 bg-[#060e20] border border-[#2d3449] rounded-xl font-mono text-xs text-[#38bdf8] break-all select-all">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-600 dark:text-[#c7c4d7]">Your Secret Key</label>
+                  <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl font-mono text-xs text-sky-300 break-all select-all">
                     {createdKeyData.raw_key}
                   </div>
                 </div>
@@ -321,9 +338,9 @@ print(response.json())`,
                     copyToClipboard(createdKeyData.raw_key, 'new')
                     setShowModal(false)
                   }}
-                  className="w-full py-2.5 rounded-xl bg-[#10b981] text-white font-semibold text-xs shadow-md"
+                  className="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md"
                 >
-                  Copy Secret Key & Close
+                  Copy Key & Close
                 </button>
               </div>
             )}

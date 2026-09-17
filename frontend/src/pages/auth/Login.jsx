@@ -44,12 +44,12 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b1326] text-[#dae2fd] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0b1326] text-slate-800 dark:text-[#dae2fd] flex transition-colors duration-200 items-center justify-center p-4 relative overflow-hidden">
       {/* Glow Effects */}
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#6366f1]/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#38bdf8]/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md bg-[#171f33]/90 border border-[#2d3449] rounded-2xl p-8 shadow-2xl backdrop-blur-xl relative z-10 space-y-6">
+      <div className="w-full max-w-md bg-white dark:bg-[#171f33]/90 border border-slate-200 dark:border-[#2d3449] rounded-2xl p-8 shadow-2xl backdrop-blur-xl relative z-10 space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
           <Link to="/" className="inline-flex items-center gap-2 mb-2">
@@ -58,18 +58,18 @@ export default function Login() {
             </div>
           </Link>
           <h1 className="text-2xl font-bold text-white tracking-tight">Sign In to Chatti AI</h1>
-          <p className="text-xs text-[#908fa0]">Access your AI chatbot workspace & developer hub</p>
+          <p className="text-xs text-slate-500 dark:text-[#908fa0]">Access your AI chatbot workspace & developer hub</p>
         </div>
 
         {/* Dual Role Selector */}
-        <div className="grid grid-cols-2 gap-2 bg-[#131b2e] p-1.5 rounded-xl border border-[#2d3449]">
+        <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-[#131b2e] p-1.5 rounded-xl border border-slate-200 dark:border-[#2d3449]">
           <button
             type="button"
             onClick={() => setRole('business')}
             className={`py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all ${
               role === 'business'
                 ? 'bg-[#6366f1] text-white shadow-md font-semibold'
-                : 'text-[#908fa0] hover:text-white'
+                : 'text-slate-500 dark:text-[#908fa0] hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">domain</span>
@@ -81,7 +81,7 @@ export default function Login() {
             className={`py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all ${
               role === 'developer'
                 ? 'bg-[#38bdf8] text-[#00354a] shadow-md font-semibold'
-                : 'text-[#908fa0] hover:text-white'
+                : 'text-slate-500 dark:text-[#908fa0] hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <span className="material-symbols-outlined text-[16px]">code</span>
@@ -92,43 +92,43 @@ export default function Login() {
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[#c7c4d7]">
+            <label className="text-xs font-medium text-slate-600 dark:text-[#c7c4d7]">
               {role === 'developer' ? 'Developer Email' : 'Business Email'}
             </label>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3.5 top-3 text-[#908fa0] text-[18px]">mail</span>
+              <span className="material-symbols-outlined absolute left-3.5 top-3 text-slate-400 dark:text-[#908fa0] text-[18px]">mail</span>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@company.com"
-                className="w-full bg-[#131b2e] text-white text-sm pl-10 pr-4 py-2.5 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-[#908fa0]"
+                className="w-full bg-slate-50 dark:bg-[#131b2e] text-slate-900 dark:text-white text-sm pl-10 pr-4 py-2.5 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-slate-400 dark:placeholder-[#908fa0]"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-[#c7c4d7]">Password</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-[#c7c4d7]">Password</label>
               <Link to="/forgot-password" className="text-xs text-[#38bdf8] hover:underline font-medium">
                 Forgot password?
               </Link>
             </div>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-3.5 top-3 text-[#908fa0] text-[18px]">lock</span>
+              <span className="material-symbols-outlined absolute left-3.5 top-3 text-slate-400 dark:text-[#908fa0] text-[18px]">lock</span>
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-[#131b2e] text-white text-sm pl-10 pr-10 py-2.5 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-[#908fa0]"
+                className="w-full bg-slate-50 dark:bg-[#131b2e] text-slate-900 dark:text-white text-sm pl-10 pr-10 py-2.5 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-slate-400 dark:placeholder-[#908fa0]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 text-[#908fa0] hover:text-white"
+                className="absolute right-3 top-2.5 text-slate-400 dark:text-[#908fa0] hover:text-slate-900 dark:hover:text-white"
               >
                 <span className="material-symbols-outlined text-[18px]">
                   {showPassword ? 'visibility_off' : 'visibility'}
@@ -137,8 +137,8 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-[#908fa0]">
-            <input type="checkbox" id="remember" className="rounded bg-[#131b2e] border-[#2d3449] text-[#6366f1]" />
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-[#908fa0]">
+            <input type="checkbox" id="remember" className="rounded bg-slate-100 dark:bg-[#131b2e] border-slate-300 dark:border-[#2d3449] text-[#6366f1]" />
             <label htmlFor="remember">Remember me on this device</label>
           </div>
 
@@ -164,15 +164,15 @@ export default function Login() {
 
         {/* Divider */}
         <div className="relative flex items-center justify-center my-4">
-          <div className="border-t border-[#2d3449] w-full" />
-          <span className="bg-[#171f33] px-3 text-[11px] text-[#908fa0] uppercase tracking-wider font-mono absolute">
+          <div className="border-t border-slate-200 dark:border-[#2d3449] w-full" />
+          <span className="bg-[#171f33] px-3 text-[11px] text-slate-500 dark:text-[#908fa0] uppercase tracking-wider font-mono absolute">
             Or continue with
           </span>
         </div>
 
         {/* Social Logins */}
         <div className="grid grid-cols-2 gap-3">
-          <button className="py-2.5 px-4 bg-[#131b2e] border border-[#2d3449] hover:bg-[#222a3d] text-xs font-medium text-white rounded-xl flex items-center justify-center gap-2 transition-colors">
+          <button className="py-2.5 px-4 bg-slate-50 dark:bg-[#131b2e] border border-slate-200 dark:border-[#2d3449] hover:bg-[#222a3d] text-xs font-medium text-white rounded-xl flex items-center justify-center gap-2 transition-colors">
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
               <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
@@ -182,14 +182,14 @@ export default function Login() {
             <span>Google</span>
           </button>
 
-          <button className="py-2.5 px-4 bg-[#131b2e] border border-[#2d3449] hover:bg-[#222a3d] text-xs font-medium text-white rounded-xl flex items-center justify-center gap-2 transition-colors">
+          <button className="py-2.5 px-4 bg-slate-50 dark:bg-[#131b2e] border border-slate-200 dark:border-[#2d3449] hover:bg-[#222a3d] text-xs font-medium text-white rounded-xl flex items-center justify-center gap-2 transition-colors">
             <span className="material-symbols-outlined text-[18px]">terminal</span>
             <span>GitHub</span>
           </button>
         </div>
 
         {/* Footer Link */}
-        <p className="text-center text-xs text-[#908fa0]">
+        <p className="text-center text-xs text-slate-500 dark:text-[#908fa0]">
           Don't have an account?{' '}
           <Link to={`/register?role=${role}`} className="text-[#38bdf8] font-semibold hover:underline">
             Create account

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './store/authStore'
+import { useThemeStore } from './store/themeStore'
 
 // Public Landing Page
 import LandingPage from './pages/LandingPage'
@@ -16,6 +17,7 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 // Dashboard pages
 import Dashboard from './pages/dashboard/Dashboard'
 import Documents from './pages/dashboard/Documents'
+import Chatbots from './pages/dashboard/Chatbots'
 import APIKeys from './pages/dashboard/APIKeys'
 import Chat from './pages/dashboard/Chat'
 import Settings from './pages/dashboard/Settings'
@@ -36,6 +38,11 @@ function PrivateRoute({ children }) {
 
 export default function App() {
   const { loadUser, isAuthenticated } = useAuthStore()
+  const initTheme = useThemeStore((s) => s.init)
+
+  useEffect(() => {
+    initTheme()
+  }, []) // eslint-disable-line
 
   // Restore user from token on every page load / refresh
   useEffect(() => {
@@ -61,7 +68,8 @@ export default function App() {
           {/* Protected dashboard routes */}
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/documents"  element={<PrivateRoute><Documents /></PrivateRoute>} />
-          <Route path="/api-keys"   element={<PrivateRoute><APIKeys /></PrivateRoute>} />
+          <Route path="/chatbots"   element={<PrivateRoute><Chatbots /></PrivateRoute>} />
+          <Route path="/api-keys"   element={<Navigate to="/chatbots" replace />} />
           <Route path="/chat"       element={<PrivateRoute><Chat /></PrivateRoute>} />
           <Route path="/settings"   element={<PrivateRoute><Settings /></PrivateRoute>} />
           <Route path="/billing"    element={<PrivateRoute><Billing /></PrivateRoute>} />

@@ -8,7 +8,7 @@ export default function Navbar() {
   const navigate = useNavigate()
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#0b1326]/80 backdrop-blur-xl border-b border-[#2d3449]/50">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#0b1326]/80 backdrop-blur-xl border-b border-slate-200 dark:border-[#2d3449]/50">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-3">
@@ -25,10 +25,10 @@ export default function Navbar() {
 
         {/* Desktop Nav Links */}
         <nav className="hidden md:flex items-center gap-8">
-          <a href="#features" className="text-sm font-medium text-[#c7c4d7] hover:text-white transition-colors">Features</a>
-          <a href="#solutions" className="text-sm font-medium text-[#c7c4d7] hover:text-white transition-colors">Solutions</a>
-          <a href="#pricing" className="text-sm font-medium text-[#c7c4d7] hover:text-white transition-colors">Pricing</a>
-          <a href="#api" className="text-sm font-medium text-[#c7c4d7] hover:text-white transition-colors">Developer API</a>
+          <a href="#features" className="text-sm font-medium text-slate-600 dark:text-[#c7c4d7] hover:text-white transition-colors">Features</a>
+          <a href="#solutions" className="text-sm font-medium text-slate-600 dark:text-[#c7c4d7] hover:text-white transition-colors">Solutions</a>
+          <a href="#pricing" className="text-sm font-medium text-slate-600 dark:text-[#c7c4d7] hover:text-white transition-colors">Pricing</a>
+          <a href="#api" className="text-sm font-medium text-slate-600 dark:text-[#c7c4d7] hover:text-white transition-colors">Developer API</a>
         </nav>
 
         {/* Desktop Right CTAs */}
@@ -44,7 +44,7 @@ export default function Navbar() {
             <>
               <Link
                 to="/login"
-                className="text-sm font-medium text-[#c7c4d7] hover:text-white transition-colors px-3 py-2"
+                className="text-sm font-medium text-slate-600 dark:text-[#c7c4d7] hover:text-white transition-colors px-3 py-2"
               >
                 Sign In
               </Link>
@@ -57,7 +57,7 @@ export default function Navbar() {
               </Link>
               <Link
                 to="/login?role=developer"
-                className="px-4 py-2.5 rounded-xl bg-[#171f33] border border-[#2d3449] text-[#dae2fd] hover:text-white font-semibold text-xs md:text-sm hover:bg-[#222a3d] transition-all flex items-center gap-2"
+                className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] text-slate-700 dark:text-[#dae2fd] hover:text-slate-900 dark:hover:text-white font-semibold text-xs md:text-sm hover:bg-slate-200 dark:hover:bg-[#222a3d] transition-all flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[18px]">code</span>
                 <span>Developer Portal</span>
@@ -69,7 +69,7 @@ export default function Navbar() {
         {/* Mobile Hamburger Toggle */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 text-[#c7c4d7] hover:text-white rounded-xl hover:bg-[#171f33]"
+          className="lg:hidden p-2 text-slate-500 dark:text-[#c7c4d7] hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-[#171f33]"
         >
           <span className="material-symbols-outlined">{mobileMenuOpen ? 'close' : 'menu'}</span>
         </button>
@@ -77,18 +77,18 @@ export default function Navbar() {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#131b2e] border-b border-[#2d3449] px-6 py-6 space-y-4">
+        <div className="lg:hidden bg-white dark:bg-[#131b2e] border-b border-slate-200 dark:border-[#2d3449] px-6 py-6 space-y-4">
           <nav className="flex flex-col space-y-3">
-            <a href="#features" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-[#c7c4d7]">Features</a>
-            <a href="#solutions" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-[#c7c4d7]">Solutions</a>
-            <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-[#c7c4d7]">Pricing</a>
-            <a href="#api" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-[#c7c4d7]">Developer API</a>
+            <a href="#features" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-slate-600 dark:text-[#c7c4d7]">Features</a>
+            <a href="#solutions" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-slate-600 dark:text-[#c7c4d7]">Solutions</a>
+            <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-slate-600 dark:text-[#c7c4d7]">Pricing</a>
+            <a href="#api" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium text-slate-600 dark:text-[#c7c4d7]">Developer API</a>
           </nav>
-          <div className="pt-4 border-t border-[#2d3449] flex flex-col gap-3">
+          <div className="pt-4 border-t border-slate-200 dark:border-[#2d3449] flex flex-col gap-3">
             <Link
               to="/login"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 rounded-xl bg-[#171f33] text-white font-semibold text-sm"
+              className="w-full text-center py-2.5 rounded-xl bg-slate-100 dark:bg-[#171f33] text-slate-900 dark:text-white font-semibold text-sm"
             >
               Sign In
             </Link>
@@ -102,7 +102,7 @@ export default function Navbar() {
             <Link
               to="/login?role=developer"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 rounded-xl bg-[#222a3d] border border-[#2d3449] text-[#38bdf8] font-semibold text-sm"
+              className="w-full text-center py-2.5 rounded-xl bg-slate-50 dark:bg-[#222a3d] border border-slate-200 dark:border-[#2d3449] text-[#38bdf8] font-semibold text-sm"
             >
               Developer Login
             </Link>

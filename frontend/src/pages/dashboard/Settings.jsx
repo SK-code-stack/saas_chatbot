@@ -29,7 +29,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b1326] text-[#dae2fd] flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0b1326] text-slate-800 dark:text-[#dae2fd] flex transition-colors duration-200">
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -37,13 +37,13 @@ export default function Settings() {
 
         <main className="flex-1 p-4 md:p-8 space-y-8 overflow-y-auto">
           {/* Header Bar */}
-          <div className="border-b border-[#2d3449] pb-6">
-            <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Workspace Settings</h1>
-            <p className="text-xs md:text-sm text-[#908fa0]">Manage account profile, team access permissions, and custom domain setup.</p>
+          <div className="border-b border-slate-200 dark:border-[#2d3449] pb-6">
+            <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Workspace Settings</h1>
+            <p className="text-xs md:text-sm text-slate-500 dark:text-[#908fa0]">Manage account profile, team access permissions, and custom domain setup.</p>
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex gap-2 border-b border-[#2d3449] pb-3 overflow-x-auto text-xs sm:text-sm">
+          <div className="flex gap-2 border-b border-slate-200 dark:border-[#2d3449] pb-3 overflow-x-auto text-xs sm:text-sm">
             {[
               { id: 'profile', name: 'Profile Information', icon: 'person' },
               { id: 'team', name: 'Team Members & Roles', icon: 'group' },
@@ -56,7 +56,7 @@ export default function Settings() {
                 className={`px-4 py-2 rounded-xl flex items-center gap-2 font-medium transition-colors shrink-0 ${
                   activeTab === tab.id
                     ? 'bg-[#6366f1] text-white font-semibold shadow-md'
-                    : 'text-[#908fa0] hover:text-white hover:bg-[#171f33]'
+                    : 'text-slate-500 dark:text-[#908fa0] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#171f33]'
                 }`}
               >
                 <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
@@ -67,38 +67,38 @@ export default function Settings() {
 
           {/* Tab 1: Profile */}
           {activeTab === 'profile' && (
-            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 max-w-2xl space-y-6">
-              <h2 className="text-base font-bold text-white border-b border-[#2d3449] pb-3">Personal Profile</h2>
+            <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-6 max-w-2xl space-y-6">
+              <h2 className="text-base font-bold text-white border-b border-slate-200 dark:border-[#2d3449] pb-3">Personal Profile</h2>
 
               <form onSubmit={handleSaveProfile} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-[#c7c4d7]">First Name</label>
+                    <label className="text-xs font-medium text-slate-600 dark:text-[#c7c4d7]">First Name</label>
                     <input
                       type="text"
                       value={profile.firstName}
                       onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
-                      className="w-full bg-[#131b2e] text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] outline-none"
+                      className="w-full bg-slate-50 dark:bg-[#131b2e] text-slate-900 dark:text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#2d3449] outline-none"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-[#c7c4d7]">Last Name</label>
+                    <label className="text-xs font-medium text-slate-600 dark:text-[#c7c4d7]">Last Name</label>
                     <input
                       type="text"
                       value={profile.lastName}
                       onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-                      className="w-full bg-[#131b2e] text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] outline-none"
+                      className="w-full bg-slate-50 dark:bg-[#131b2e] text-slate-900 dark:text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#2d3449] outline-none"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#c7c4d7]">Email Address</label>
+                  <label className="text-xs font-medium text-slate-600 dark:text-[#c7c4d7]">Email Address</label>
                   <input
                     type="email"
                     value={profile.email}
                     disabled
-                    className="w-full bg-[#131b2e]/60 text-[#908fa0] text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] cursor-not-allowed"
+                    className="w-full bg-slate-100/60 dark:bg-[#131b2e]/60 text-[#908fa0] text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] cursor-not-allowed"
                   />
                 </div>
 
@@ -114,8 +114,8 @@ export default function Settings() {
 
           {/* Tab 2: Team Members */}
           {activeTab === 'team' && (
-            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#2d3449] pb-4">
+            <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#2d3449] pb-4">
                 <h2 className="text-base font-bold text-white">Team Members ({teamMembers.length})</h2>
                 <button
                   onClick={() => toast.success('Invite link sent!')}
@@ -128,18 +128,18 @@ export default function Settings() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="text-[#908fa0] uppercase tracking-wider font-mono border-b border-[#2d3449]/50">
+                    <tr className="text-slate-500 dark:text-[#908fa0] uppercase tracking-wider font-mono border-b border-slate-200 dark:border-slate-200 dark:border-[#2d3449]/50">
                       <th className="pb-3 font-medium">User</th>
                       <th className="pb-3 font-medium">Role</th>
                       <th className="pb-3 font-medium">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#2d3449]/30 text-[#dae2fd]">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-100 dark:divide-[#2d3449]/30 text-[#dae2fd]">
                     {teamMembers.map((m, idx) => (
-                      <tr key={idx} className="hover:bg-[#222a3d]/40 transition-colors">
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-[#222a3d]/40 transition-colors">
                         <td className="py-3.5">
                           <p className="font-semibold text-white">{m.name}</p>
-                          <p className="text-[11px] text-[#908fa0]">{m.email}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-[#908fa0]">{m.email}</p>
                         </td>
                         <td className="py-3.5 font-mono text-[#38bdf8]">{m.role}</td>
                         <td className="py-3.5">
@@ -157,25 +157,25 @@ export default function Settings() {
 
           {/* Tab 3: Custom Domain */}
           {activeTab === 'domain' && (
-            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 max-w-2xl space-y-6">
-              <div className="border-b border-[#2d3449] pb-3">
+            <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-6 max-w-2xl space-y-6">
+              <div className="border-b border-slate-200 dark:border-[#2d3449] pb-3">
                 <h2 className="text-base font-bold text-white">Custom Domain Mapping</h2>
-                <p className="text-xs text-[#908fa0]">Serve your AI chatbot widget from your own domain name</p>
+                <p className="text-xs text-slate-500 dark:text-[#908fa0]">Serve your AI chatbot widget from your own domain name</p>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-[#c7c4d7]">Custom Domain Name</label>
+                  <label className="text-xs font-medium text-slate-600 dark:text-[#c7c4d7]">Custom Domain Name</label>
                   <input
                     type="text"
                     value={customDomain}
                     onChange={(e) => setCustomDomain(e.target.value)}
                     placeholder="chat.yourdomain.com"
-                    className="w-full bg-[#131b2e] text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#2d3449] outline-none"
+                    className="w-full bg-slate-50 dark:bg-[#131b2e] text-slate-900 dark:text-white text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-[#2d3449] outline-none"
                   />
                 </div>
 
-                <div className="bg-[#131b2e] border border-[#2d3449] rounded-xl p-4 space-y-2 text-xs font-mono text-[#c7c4d7]">
+                <div className="bg-slate-50 dark:bg-[#131b2e] border border-slate-200 dark:border-[#2d3449] rounded-xl p-4 space-y-2 text-xs font-mono text-slate-600 dark:text-[#c7c4d7]">
                   <p className="text-white font-bold">DNS CNAME Record to add to your DNS provider:</p>
                   <div className="flex justify-between text-[#38bdf8]">
                     <span>Type: CNAME</span>
@@ -196,15 +196,15 @@ export default function Settings() {
 
           {/* Tab 4: Security */}
           {activeTab === 'security' && (
-            <div className="bg-[#171f33] border border-[#2d3449] rounded-2xl p-6 max-w-2xl space-y-6">
-              <div className="border-b border-[#2d3449] pb-3">
+            <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-6 max-w-2xl space-y-6">
+              <div className="border-b border-slate-200 dark:border-[#2d3449] pb-3">
                 <h2 className="text-base font-bold text-white">Security & Two-Factor Authentication</h2>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-[#131b2e] border border-[#2d3449] rounded-xl">
+              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-[#131b2e] border border-slate-200 dark:border-[#2d3449] rounded-xl">
                 <div>
                   <p className="text-sm font-bold text-white">Two-Factor Authentication (2FA)</p>
-                  <p className="text-xs text-[#908fa0]">Protect your account with Google Authenticator or TOTP apps</p>
+                  <p className="text-xs text-slate-500 dark:text-[#908fa0]">Protect your account with Google Authenticator or TOTP apps</p>
                 </div>
                 <button
                   onClick={() => toast.success('2FA Setup modal launched')}

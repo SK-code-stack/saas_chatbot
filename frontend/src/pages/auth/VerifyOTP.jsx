@@ -56,14 +56,14 @@ export default function VerifyOTP() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b1326] text-[#dae2fd] flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="w-full max-w-md bg-[#171f33]/90 border border-[#2d3449] rounded-2xl p-8 shadow-2xl backdrop-blur-xl space-y-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0b1326] text-slate-800 dark:text-[#dae2fd] flex transition-colors duration-200 items-center justify-center p-4 relative overflow-hidden">
+      <div className="w-full max-w-md bg-white dark:bg-[#171f33]/90 border border-slate-200 dark:border-[#2d3449] rounded-2xl p-8 shadow-2xl backdrop-blur-xl space-y-6">
         <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-full bg-[#10b981]/20 border border-[#10b981]/30 mx-auto flex items-center justify-center text-[#10b981]">
             <span className="material-symbols-outlined text-[24px]">verified_user</span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Security Verification</h1>
-          <p className="text-xs text-[#908fa0]">We sent a 4-digit code to <span className="text-white font-mono">{email}</span></p>
+          <p className="text-xs text-slate-500 dark:text-[#908fa0]">We sent a 4-digit code to <span className="text-white font-mono">{email}</span></p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -76,7 +76,7 @@ export default function VerifyOTP() {
                 maxLength="1"
                 value={digit}
                 onChange={(e) => handleOtpChange(e.target.value, idx)}
-                className="w-14 h-16 bg-[#131b2e] border border-[#2d3449] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20 rounded-xl text-center font-mono font-bold text-2xl text-white outline-none"
+                className="w-14 h-16 bg-slate-50 dark:bg-[#131b2e] border border-slate-200 dark:border-[#2d3449] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20 rounded-xl text-center font-mono font-bold text-2xl text-white outline-none"
               />
             ))}
           </div>
@@ -90,13 +90,13 @@ export default function VerifyOTP() {
           </button>
         </form>
 
-        <div className="text-center space-y-2 text-xs text-[#908fa0]">
+        <div className="text-center space-y-2 text-xs text-slate-500 dark:text-[#908fa0]">
           <p>Didn't receive the code?{' '}
             <button type="button" onClick={handleResend} className="text-[#38bdf8] font-semibold hover:underline">
               Resend code
             </button>
           </p>
-          <Link to="/login" className="block text-[#908fa0] hover:text-white pt-2">← Back to Sign In</Link>
+          <Link to="/login" className="block text-slate-500 dark:text-[#908fa0] hover:text-slate-900 dark:hover:text-white pt-2">← Back to Sign In</Link>
         </div>
       </div>
     </div>

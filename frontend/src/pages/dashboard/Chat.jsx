@@ -49,16 +49,16 @@ export default function Chat() {
         {
           id: Date.now() + 1,
           sender: 'ai',
-          text: `Processed query "${userText}" using the RAG model pipeline. Results match indexed vectors in your knowledge base.`,
-          citation: 'knowledge_base/vector_index_01.pdf (Similarity: 96.4%)',
+          text: `Based on your uploaded documents, here is the answer for "${userText}".`,
+          citation: 'Pricing_and_Plans.docx',
           time: 'Just now',
         },
       ])
-    }, 600)
+    }, 150)
   }
 
   return (
-    <div className="min-h-screen bg-[#0b1326] text-[#dae2fd] flex">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0b1326] text-slate-800 dark:text-[#dae2fd] flex transition-colors duration-200">
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -66,36 +66,34 @@ export default function Chat() {
 
         <main className="flex-1 p-4 md:p-8 flex flex-col lg:flex-row gap-6 overflow-hidden">
           {/* Left Session Column (4 Cols) */}
-          <div className="w-full lg:w-80 bg-[#171f33] border border-[#2d3449] rounded-2xl flex flex-col shrink-0">
-            <div className="p-4 border-b border-[#2d3449] space-y-3">
+          <div className="w-full lg:w-80 bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl flex flex-col shrink-0">
+            <div className="p-4 border-b border-slate-200 dark:border-[#2d3449] space-y-3">
               <h2 className="text-sm font-bold text-white">Chat Sessions Log</h2>
-              <div className="flex items-center gap-2 bg-[#131b2e] px-3 py-2 rounded-xl border border-[#2d3449] text-xs text-[#908fa0]">
+              <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#131b2e] px-3 py-2 rounded-xl border border-[#2d3449] text-xs text-slate-500 dark:text-[#908fa0]">
                 <span className="material-symbols-outlined text-[16px]">search</span>
                 <input type="text" placeholder="Search sessions..." className="bg-transparent outline-none text-white text-xs w-full" />
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto divide-y divide-[#2d3449]/30">
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-100 dark:divide-[#2d3449]/30">
               {sessions.map((sess) => (
                 <div
                   key={sess.id}
                   onClick={() => setActiveSession(sess.id)}
-                  className={`p-4 cursor-pointer transition-colors ${
-                    activeSession === sess.id ? 'bg-[#222a3d] border-l-4 border-[#6366f1]' : 'hover:bg-[#131b2e]'
-                  }`}
+                  className={`p-4 cursor-pointer transition-colors ${activeSession === sess.id ? 'bg-slate-100 dark:bg-[#222a3d] border-l-4 border-[#6366f1]' : 'hover:bg-slate-100 dark:hover:bg-[#131b2e]'
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono text-xs text-[#38bdf8] font-bold">{sess.id}</span>
-                    <span className="text-[10px] text-[#908fa0]">{sess.time}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-[#908fa0]">{sess.time}</span>
                   </div>
                   <p className="text-xs font-semibold text-white truncate">{sess.user}</p>
-                  <p className="text-[11px] text-[#908fa0] truncate mt-0.5">{sess.lastMsg}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-500 dark:text-[#908fa0] truncate mt-0.5">{sess.lastMsg}</p>
                   <div className="mt-2 flex items-center justify-between">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
-                      sess.status === 'Resolved'
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${sess.status === 'Resolved'
                         ? 'bg-[#10b981]/20 text-[#10b981]'
                         : 'bg-amber-500/20 text-amber-400'
-                    }`}>
+                      }`}>
                       {sess.status}
                     </span>
                   </div>
@@ -105,23 +103,23 @@ export default function Chat() {
           </div>
 
           {/* Right Main Chat Panel */}
-          <div className="flex-1 bg-[#171f33] border border-[#2d3449] rounded-2xl flex flex-col overflow-hidden min-h-[550px]">
+          <div className="flex-1 bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl flex flex-col overflow-hidden min-h-[550px]">
             {/* Chat Inspector Top Header */}
-            <div className="p-4 bg-[#222a3d] border-b border-[#2d3449] flex items-center justify-between">
+            <div className="p-4 bg-[#222a3d] border-b border-slate-200 dark:border-[#2d3449] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#6366f1] to-[#38bdf8] flex items-center justify-center text-white font-bold text-xs">
                   S
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-white">Session: {activeSession}</h3>
-                  <p className="text-[11px] text-[#908fa0]">User: sarah.dev@stripe.com • IP: 192.168.1.42</p>
+                  <p className="text-[11px] text-slate-500 dark:text-[#908fa0]">User: sarah.dev@stripe.com • IP: 192.168.1.42</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => toast.success('Escalated to human support queue!')}
-                  className="px-3 py-1.5 rounded-xl bg-[#131b2e] border border-[#2d3449] hover:bg-[#31394d] text-xs text-[#38bdf8] font-semibold transition-colors flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#131b2e] border border-slate-200 dark:border-[#2d3449] hover:bg-[#31394d] text-xs text-[#38bdf8] font-semibold transition-colors flex items-center gap-1.5"
                 >
                   <span className="material-symbols-outlined text-[16px]">support_agent</span>
                   <span>Handover to Human</span>
@@ -130,22 +128,20 @@ export default function Chat() {
             </div>
 
             {/* Messages Body */}
-            <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-[#0b1326]/50">
+            <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-100/50 dark:bg-[#0b1326]/50">
               {messages.map((m) => (
                 <div
                   key={m.id}
                   className={`flex gap-3 max-w-[80%] ${m.sender === 'user' ? 'ml-auto flex-row-reverse' : ''}`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                    m.sender === 'user' ? 'bg-[#222a3d] text-[#c7c4d7]' : 'bg-[#6366f1] text-white'
-                  }`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${m.sender === 'user' ? 'bg-slate-200 dark:bg-[#222a3d] text-slate-700 dark:text-[#c7c4d7]' : 'bg-[#6366f1] text-white'
+                    }`}>
                     {m.sender === 'user' ? 'U' : 'AI'}
                   </div>
-                  <div className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed ${
-                    m.sender === 'user'
-                      ? 'bg-[#222a3d] text-white rounded-tr-none'
-                      : 'bg-[#6366f1]/10 border border-[#6366f1]/20 text-[#dae2fd] rounded-tl-none space-y-2'
-                  }`}>
+                  <div className={`p-4 rounded-2xl text-xs sm:text-sm leading-relaxed ${m.sender === 'user'
+                      ? 'bg-slate-200 dark:bg-[#222a3d] text-slate-900 dark:text-white rounded-tr-none'
+                      : 'bg-[#6366f1]/10 border border-[#6366f1]/20 text-slate-700 dark:text-[#dae2fd] rounded-tl-none space-y-2'
+                    }`}>
                     <p>{m.text}</p>
                     {m.citation && (
                       <div className="flex items-center gap-1.5 pt-2 border-t border-[#6366f1]/20 text-[11px] font-mono text-[#10b981]">
@@ -153,20 +149,20 @@ export default function Chat() {
                         <span>Source: {m.citation}</span>
                       </div>
                     )}
-                    <span className="text-[10px] text-[#908fa0] block text-right font-mono">{m.time}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-[#908fa0] block text-right font-mono">{m.time}</span>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Input Bar */}
-            <form onSubmit={handleSendMessage} className="p-4 bg-[#171f33] border-t border-[#2d3449] flex items-center gap-3">
+            <form onSubmit={handleSendMessage} className="p-4 bg-[#171f33] border-t border-slate-200 dark:border-[#2d3449] flex items-center gap-3">
               <input
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Test a question against the live RAG vector model..."
-                className="flex-1 bg-[#131b2e] text-white text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-[#908fa0]"
+                className="flex-1 bg-slate-50 dark:bg-[#131b2e] text-slate-900 dark:text-white text-xs sm:text-sm px-4 py-2.5 rounded-xl border border-slate-200 dark:border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-slate-400 dark:placeholder-[#908fa0]"
               />
               <button
                 type="submit"

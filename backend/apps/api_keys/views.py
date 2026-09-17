@@ -80,6 +80,10 @@ class APIKeyViewSet(viewsets.GenericViewSet):
         api_key.delete()
         return Response({'message': 'Key deleted'}, status=status.HTTP_204_NO_CONTENT)
 
+    def destroy(self, request, pk=None):
+        return self.delete_key(request, pk)
+
+
     # ── Usage stats ────────────────────────────────────────────────
     @action(detail=True, methods=['get'])
     def usage(self, request, pk=None):
