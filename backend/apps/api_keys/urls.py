@@ -8,8 +8,6 @@ router = DefaultRouter()
 router.register('', APIKeyViewSet, basename='api-keys')
 
 urlpatterns = [
-    path('', include(router.urls)),
-
     # Public endpoint for developers and widget
     path('chat/', PublicChatView.as_view(), name='public-chat'),
 
@@ -19,6 +17,9 @@ urlpatterns = [
 
     # Widget config — public (used by widget.js to load config on page)
     path('<int:pk>/widget-config/public/', WidgetConfigPublicView.as_view(), name='widget-config-public'),
+    path('<str:pk>/widget-config/public/', WidgetConfigPublicView.as_view(), name='widget-config-public-str'),
+
+    path('', include(router.urls)),
 ]
 
 # GET    /api/keys/list_keys/                    → List all keys

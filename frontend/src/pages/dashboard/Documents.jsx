@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Sidebar from '../../components/layout/Sidebar'
 import Header from '../../components/layout/Header'
 import StepBanner from '../../components/ui/StepBanner'
@@ -11,8 +11,77 @@ export default function Documents() {
   const [uploading, setUploading] = useState(false)
   const [webUrl, setWebUrl] = useState('')
   const [scraping, setScraping] = useState(false)
+  const [systemPrompt, setSystemPrompt] = useState(
+    localStorage.getItem('saas_custom_system_prompt') || ''
+  )
+  const [refinementLoading, setRefinementLoading] = useState(false)
+  const [savingPrompt, setSavingPrompt] = useState(false)
   const fileRef = useRef(null)
   const queryClient = useQueryClient()
+
+  // Load chatbot keys so we can save system_prompt to WidgetConfig
+  const { data: keysData } = useQuery({
+    queryKey: ['api-keys'],
+    queryFn: async () => {
+      try {
+        const res = await api.get('/api/keys/list_keys/')
+        return res.data || []
+      } catch { return [] }
+    },
+  })
+  const chatbotKeys = Array.isArray(keysData) ? keysData : (keysData?.results || [])
+
+  // Load system_prompt from first chatbot widget config on mount
+  useEffect(() => {
+    if (chatbotKeys.length === 0 || systemPrompt) return
+    const firstKey = chatbotKeys[0]
+    api.get(`/api/keys/${firstKey.id}/widget-config/`)
+      .then((res) => {
+        const sp = res.data?.system_prompt
+        if (sp) {
+          setSystemPrompt(sp)
+          localStorage.setItem('saas_custom_system_prompt', sp)
+        }
+      })
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatbotKeys.length])
+
+  const handleRefinePrompt = async () => {
+    setRefinementLoading(true)
+    try {
+      const res = await api.post('/api/chatbot/refine_prompt/', { prompt: systemPrompt })
+      if (res.data?.refined_prompt) {
+        setSystemPrompt(res.data.refined_prompt)
+        localStorage.setItem('saas_custom_system_prompt', res.data.refined_prompt)
+        toast.success('\u2728 AI refined your system prompt!')
+      }
+    } catch (e) {
+      toast.error('Failed to refine prompt')
+    } finally {
+      setRefinementLoading(false)
+    }
+  }
+
+  const handleSavePrompt = async () => {
+    if (!systemPrompt.trim()) { toast.error('Please enter a system prompt first'); return }
+    if (chatbotKeys.length === 0) { toast.error('Create a chatbot first before saving a prompt'); return }
+    setSavingPrompt(true)
+    try {
+      await Promise.all(
+        chatbotKeys.map((k) =>
+          api.put(`/api/keys/${k.id}/widget-config/`, { system_prompt: systemPrompt })
+        )
+      )
+      localStorage.setItem('saas_custom_system_prompt', systemPrompt)
+      toast.success('System prompt saved to all your chatbots!')
+    } catch (e) {
+      toast.error('Failed to save prompt')
+    } finally {
+      setSavingPrompt(false)
+    }
+  }
+
 
   // Fetch Documents from Django backend
   const { data: documents = [], isLoading } = useQuery({
@@ -176,6 +245,56 @@ export default function Documents() {
                 <span>{scraping ? 'Indexing URL...' : 'Scrape & Index'}</span>
               </button>
             </form>
+          </div>
+
+          {/* AI System Instructions & Prompt Refiner Card */}
+          <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-6 space-y-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-[#2d3449] pb-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[#6366f1]">psychology</span>
+                  Custom AI Behavior System Prompt
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-[#908fa0]">Write your own instructions or click AI Refine to automatically engineer a custom prompt from your uploaded documents.</p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleRefinePrompt}
+                  disabled={refinementLoading || savingPrompt}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#38bdf8] hover:opacity-95 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[16px]">{refinementLoading ? 'auto_mode' : 'auto_awesome'}</span>
+                  <span>{refinementLoading ? 'Refining...' : '✨ AI Refine'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSavePrompt}
+                  disabled={savingPrompt || refinementLoading}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[16px]">save</span>
+                  <span>{savingPrompt ? 'Saving...' : 'Save Prompt'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <textarea
+                rows={3}
+                value={systemPrompt}
+                onChange={(e) => {
+                  setSystemPrompt(e.target.value)
+                  localStorage.setItem('saas_custom_system_prompt', e.target.value)
+                }}
+                placeholder="Type your custom system instructions here (e.g., 'You are a helpful customer support representative for Acme Store. Be friendly, direct, and answer questions concisely in plain text without markdown symbols.')..."
+                className="w-full bg-slate-50 dark:bg-[#131b2e] text-slate-900 dark:text-white text-xs sm:text-sm p-4 rounded-xl border border-slate-200 dark:border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-slate-400 leading-relaxed"
+              />
+              <p className="text-[11px] text-slate-400 dark:text-[#908fa0]">
+                💡 Tip: Click <strong>✨ AI Refine Prompt</strong> to analyze your uploaded knowledge base files and generate clean, token-efficient plain text instructions.
+              </p>
+            </div>
           </div>
 
           {/* Document Table */}

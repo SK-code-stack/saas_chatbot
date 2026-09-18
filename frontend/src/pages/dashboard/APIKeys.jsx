@@ -98,16 +98,23 @@ export default function APIKeys() {
     setTimeout(() => setCopiedKeyId(null), 2000)
   }
 
+  const activeKeyObj = keys.find((k) => k.is_active) || keys[0]
+  const activeApiKey = activeKeyObj?.raw_key || activeKeyObj?.key || activeKeyObj?.key_prefix || 'sk_live_demo'
+  const activeKeyId = activeKeyObj?.id || '1'
+  const backendBaseUrl = window.location.protocol + '//' + window.location.hostname + ':8000'
+
   const embedScriptCode = `<script
-  src="https://cdn.chatti.ai/widget.js"
-  data-api-key="sk_live_9f8a42b109c84e12a"
+  src="${backendBaseUrl}/widget.js"
+  data-key-id="${activeKeyId}"
+  data-api-key="${activeApiKey}"
+  data-api-url="${backendBaseUrl}"
   async>
 </script>`
 
-  const apiCurlCode = `curl -X POST https://api.chatti.ai/v1/chat/completions \\
-  -H "Authorization: Bearer sk_live_9f8a42b109c84e12a" \\
+  const apiCurlCode = `curl -X POST ${backendBaseUrl}/api/keys/chat/ \\
+  -H "Authorization: Api-Key ${activeApiKey}" \\
   -H "Content-Type: application/json" \\
-  -d '{"messages": [{"role": "user", "content": "Hello bot!"}]}'`
+  -d '{"question": "Hello, how can you help me?"}'`
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0b1326] text-slate-800 dark:text-[#dae2fd] flex transition-colors duration-200">

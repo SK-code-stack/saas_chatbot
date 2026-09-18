@@ -49,20 +49,45 @@ class WidgetConfigView(APIView):
         return Response(serializer.data)
 
 
+import os
+from django.http import HttpResponse, Http404
+
+def serve_widget_js(request):
+    """Serve widget.js with application/javascript header and CORS support."""
+    widget_path = settings.BASE_DIR.parent / 'widget' / 'widget.js'
+    if not os.path.exists(widget_path):
+        raise Http404("widget.js not found")
+    with open(widget_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    response = HttpResponse(content, content_type='application/javascript')
+    response['Access-Control-Allow-Origin'] = '*'
+    response['Cache-Control'] = 'no-cache'
+    return response
+
+
 class WidgetConfigPublicView(APIView):
     """
-    GET /api/keys/<id>/widget-config/public/
+    GET /api/keys/<pk>/widget-config/public/
     Public endpoint — no auth required.
     Called by widget.js on load to fetch config (colors, bot name, etc.)
-    Only exposes safe display fields, no sensitive data.
+    Accepts pk as numeric key ID (e.g. 1) or API key string (e.g. sk_live_...)
     """
     permission_classes = [AllowAny]
 
     def get(self, request, pk):
+        pk_str = str(pk).strip()
+        api_key = None
+
         try:
-            api_key = APIKey.objects.get(id=pk, is_active=True)
-        except APIKey.DoesNotExist:
-            return Response({'error': 'Invalid API key'}, status=status.HTTP_404_NOT_FOUND)
+            if pk_str.isdigit():
+                api_key = APIKey.objects.get(id=int(pk_str), is_active=True)
+            elif pk_str.startswith('sk_'):
+                key_hash = APIKey.hash_key(pk_str)
+                api_key = APIKey.objects.get(key_hash=key_hash, is_active=True)
+            else:
+                api_key = APIKey.objects.get(key_hash=pk_str, is_active=True)
+        except (APIKey.DoesNotExist, ValueError):
+            return Response({'error': 'Invalid or inactive API key'}, status=status.HTTP_404_NOT_FOUND)
 
         config, _ = WidgetConfig.objects.get_or_create(api_key=api_key)
         return Response(WidgetConfigSerializer(config).data)

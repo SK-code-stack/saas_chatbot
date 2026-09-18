@@ -104,6 +104,35 @@ async def ask(
     )
 
 
+# ── Direct LLM generate (no RAG) ──────────────────────────────────
+class GenerateRequest(BaseModel):
+    system_prompt: str
+    question: Optional[str] = ""
+
+
+class GenerateResponse(BaseModel):
+    answer: str
+
+
+@router.post('/generate', response_model=GenerateResponse)
+async def generate(
+    request: GenerateRequest,
+    _: None = Depends(verify_internal_secret)
+):
+    """Generate a response using the LLM without any RAG / document retrieval.
+    Used internally for tasks like AI prompt refinement."""
+    try:
+        answer = LLMService.generate_response(
+            question=request.question or "Generate output",
+            context="",
+            system_prompt=request.system_prompt,
+            chat_history=[],
+        )
+        return GenerateResponse(answer=answer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Generation failed: {str(e)}')
+
+
 # ── Health check ───────────────────────────────────────────────────
 @router.get('/health')
 async def health():

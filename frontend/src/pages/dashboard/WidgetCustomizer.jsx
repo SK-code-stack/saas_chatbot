@@ -17,7 +17,7 @@ export default function WidgetCustomizer() {
   const [config, setConfig] = useState({
     bot_name: 'Support Assistant',
     welcome_message: 'Hi! How can I assist you with your project today?',
-    enable_dark_mode: true, // if true, dark mode color split is enabled
+    enable_dark_mode: false, // if true, user dark-mode toggle is shown in widget
     light_primary_color: '#6366f1',
     dark_primary_color: '#38bdf8',
     icon_type: 'emoji', // 'emoji' | 'custom'
@@ -116,10 +116,14 @@ export default function WidgetCustomizer() {
     }, 150)
   }
 
+  const backendBaseUrl = window.location.protocol + '//' + window.location.hostname + ':8000'
+
   // Generated Embed Snippets
   const scriptSnippet = `<script
-  src="https://cdn.chatti.ai/widget.js"
+  src="${backendBaseUrl}/widget.js"
+  data-key-id="${selectedKeyId || ''}"
   data-api-key="${apiKeyString}"
+  data-api-url="${backendBaseUrl}"
   data-primary-color="${config.light_primary_color}"
   ${config.enable_dark_mode ? `data-dark-primary-color="${config.dark_primary_color}"` : ''}
   data-bot-name="${config.bot_name}"
@@ -141,6 +145,35 @@ export default function App() {
   )
 }`
 
+  const [saving, setSaving] = useState(false)
+
+  // Fetch saved widget configuration when selected chatbot changes
+  useEffect(() => {
+    if (!selectedKeyId) return
+    let active = true
+    api.get(`/api/keys/${selectedKeyId}/widget-config/`)
+      .then((res) => {
+        if (!active || !res.data) return
+        const d = res.data
+        setConfig((prev) => ({
+          ...prev,
+          bot_name: d.bot_name || prev.bot_name,
+          welcome_message: d.welcome_message || prev.welcome_message,
+          light_primary_color: d.light_primary_color || prev.light_primary_color,
+          dark_primary_color: d.dark_primary_color || prev.dark_primary_color,
+          enable_dark_mode: d.allow_user_toggle ?? prev.enable_dark_mode,
+          icon_type: d.icon_url ? 'custom' : 'emoji',
+          icon_emoji: d.icon_emoji || '🤖',
+          custom_icon_url: d.icon_url || '',
+          position: d.position || prev.position,
+        }))
+      })
+      .catch((e) => {
+        // Silently use local defaults if not configured yet
+      })
+    return () => { active = false }
+  }, [selectedKeyId])
+
   const copySnippet = (text) => {
     navigator.clipboard.writeText(text)
     setCopied(true)
@@ -149,7 +182,31 @@ export default function App() {
   }
 
   const handleSave = async () => {
-    toast.success('Widget customization saved & live on CDN!')
+    if (!selectedKeyId) {
+      toast.error('Please select a chatbot key first')
+      return
+    }
+    setSaving(true)
+    try {
+      const payload = {
+        bot_name: config.bot_name,
+        welcome_message: config.welcome_message,
+        light_primary_color: config.light_primary_color,
+        dark_primary_color: config.dark_primary_color,
+        force_dark_mode: false,
+        allow_user_toggle: config.enable_dark_mode,
+        icon_url: config.icon_type === 'custom' ? config.custom_icon_url : null,
+        icon_emoji: config.icon_emoji || '💬',
+        position: config.position || 'bottom-right',
+      }
+      await api.put(`/api/keys/${selectedKeyId}/widget-config/`, payload)
+      toast.success('✨ Widget customization published live! Websites will reflect changes on next load.')
+    } catch (err) {
+      console.error(err)
+      toast.error(err.response?.data?.error || 'Failed to publish widget settings')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -175,10 +232,11 @@ export default function App() {
             </div>
             <button
               onClick={handleSave}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#38bdf8] text-white font-semibold text-xs md:text-sm shadow-lg shadow-[#6366f1]/25 hover:opacity-95 transition-all flex items-center justify-center gap-2 self-start sm:self-auto"
+              disabled={saving}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#38bdf8] text-white font-semibold text-xs md:text-sm shadow-lg shadow-[#6366f1]/25 hover:opacity-95 transition-all flex items-center justify-center gap-2 self-start sm:self-auto disabled:opacity-50 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">save</span>
-              <span>Publish Changes</span>
+              <span>{saving ? 'Publishing...' : 'Publish Changes'}</span>
             </button>
           </div>
 

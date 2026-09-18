@@ -43,10 +43,12 @@ class BaseProvider(ABC):
         Useful for OpenRouter + local providers.
         """
         default_system = (
-            "You are a helpful assistant. Answer questions based ONLY on the "
-            "provided context. If the answer is not in the context, say "
-            "'I don't have enough information to answer that.' "
-            "Be concise and professional."
+            "You are a helpful, professional assistant. Answer questions directly using the provided context. "
+            "CRITICAL RULES:\n"
+            "1. NEVER say 'based on your document', 'according to the text', 'in the context', or similar phrases.\n"
+            "2. DO NOT use formatting symbols like *, -, #, or bullet point markdown that look like raw AI output. Use clean plain text.\n"
+            "3. Keep all responses short, clear, direct, and meaningful to save tokens.\n"
+            "4. If the answer is not in the context, simply say: 'I do not have information about that.'"
         )
         final_system = system_prompt if system_prompt else default_system
 
@@ -78,10 +80,12 @@ class BaseProvider(ABC):
         Useful for Gemini and similar single-string providers.
         """
         default_system = (
-            "You are a helpful assistant. Answer questions based ONLY on the "
-            "provided context. If the answer is not in the context, say "
-            "'I don't have enough information to answer that.' "
-            "Be concise and professional."
+            "You are a helpful, professional assistant. Answer questions directly using the provided context. "
+            "CRITICAL RULES:\n"
+            "1. NEVER say 'based on your document', 'according to the text', 'in the context', or similar phrases.\n"
+            "2. DO NOT use formatting symbols like *, -, #, or bullet point markdown that look like raw AI output. Use clean plain text.\n"
+            "3. Keep all responses short, clear, direct, and meaningful to save tokens.\n"
+            "4. If the answer is not in the context, simply say: 'I do not have information about that.'"
         )
         final_system = system_prompt if system_prompt else default_system
 

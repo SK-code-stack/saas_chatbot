@@ -97,3 +97,4 @@ npm run build
 - **Knowledge Base & RAG Indexing**: Drag-and-drop document upload (PDF, DOCX, TXT, XLSX) and URL web scraper.
 - **Live Widget Studio**: Visual customization studio for widget colors, greetings, and 1-click script tag generation.
 - **Stripe Billing**: Saved credit cards management, Stripe Elements styled Add Card modal, quota tracking, and invoice PDF receipts.
+

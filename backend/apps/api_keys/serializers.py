@@ -2,12 +2,29 @@ from rest_framework import serializers
 from .models import APIKey, WidgetConfig
 
 
+class WidgetConfigSerializer(serializers.ModelSerializer):
+    icon_url = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+    class Meta:
+        model = WidgetConfig
+        fields = [
+            'bot_name', 'welcome_message',
+            'light_primary_color', 'light_secondary_color',
+            'dark_primary_color', 'dark_secondary_color',
+            'force_dark_mode', 'allow_user_toggle',
+            'icon_url', 'icon_emoji', 'position',
+            'system_prompt',
+        ]
+
+
 class APIKeySerializer(serializers.ModelSerializer):
+    widget_config = WidgetConfigSerializer(read_only=True)
+
     class Meta:
         model = APIKey
         fields = [
             'id', 'name', 'key_prefix', 'document_ids', 'is_active',
-            'total_requests', 'last_used_at', 'created_at'
+            'total_requests', 'last_used_at', 'created_at', 'widget_config'
         ]
         read_only_fields = fields
 
@@ -31,18 +48,6 @@ class APIKeyCreatedSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'key_prefix', 'document_ids',
             'raw_key', 'created_at'
-        ]
-
-
-class WidgetConfigSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WidgetConfig
-        fields = [
-            'bot_name', 'welcome_message',
-            'light_primary_color', 'light_secondary_color',
-            'dark_primary_color', 'dark_secondary_color',
-            'force_dark_mode', 'allow_user_toggle',
-            'icon_url', 'icon_emoji', 'position',
         ]
 
 

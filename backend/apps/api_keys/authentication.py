@@ -15,23 +15,36 @@ class APIKeyAuthentication(BaseAuthentication):
 
     def authenticate(self, request):
         auth_header = request.headers.get('Authorization', '')
+        raw_key = None
 
-        if not auth_header.startswith('Api-Key '):
-            return None  # not our auth method, try next
-
-        raw_key = auth_header.split('Api-Key ')[-1].strip()
+        if auth_header.startswith('Api-Key '):
+            raw_key = auth_header[8:].strip()
+        elif auth_header.startswith('Bearer ') and auth_header.startswith('Bearer sk_'):
+            raw_key = auth_header[7:].strip()
+        elif request.headers.get('X-Api-Key'):
+            raw_key = request.headers.get('X-Api-Key').strip()
 
         if not raw_key:
-            raise AuthenticationFailed('API key is empty')
-
-        # Hash and look up
-        key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+            return None  # not our auth method, try next
 
         try:
-            api_key = APIKey.objects.select_related('user').get(
-                key_hash=key_hash,
-                is_active=True
-            )
+            if raw_key.isdigit():
+                api_key = APIKey.objects.select_related('user').get(
+                    id=int(raw_key),
+                    is_active=True
+                )
+            else:
+                key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+                try:
+                    api_key = APIKey.objects.select_related('user').get(
+                        key_hash=key_hash,
+                        is_active=True
+                    )
+                except APIKey.DoesNotExist:
+                    api_key = APIKey.objects.select_related('user').get(
+                        key_hash=raw_key,
+                        is_active=True
+                    )
         except APIKey.DoesNotExist:
             raise AuthenticationFailed('Invalid or revoked API key')
 

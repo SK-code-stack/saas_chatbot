@@ -113,9 +113,9 @@ class WidgetConfig(models.Model):
     )
 
     # Icon — either a custom uploaded image or an emoji
-    icon_url = models.URLField(
+    icon_url = models.TextField(
         null=True, blank=True,
-        help_text='URL of custom icon image (Supabase)'
+        help_text='URL or data URI of custom icon image'
     )
     icon_emoji = models.CharField(
         max_length=8, default='💬',
@@ -125,6 +125,12 @@ class WidgetConfig(models.Model):
     # Layout
     position = models.CharField(
         max_length=20, choices=POSITION_CHOICES, default='bottom-right'
+    )
+
+    # AI Behavior
+    system_prompt = models.TextField(
+        blank=True, default='',
+        help_text='Custom system instructions for the AI (set by owner in Knowledge Base)'
     )
 
     updated_at = models.DateTimeField(auto_now=True)

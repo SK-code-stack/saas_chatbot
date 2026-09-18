@@ -17,22 +17,41 @@
 (function () {
   'use strict';
 
-  // ── Read embed attributes ──────────────────────────────────────────────
-  const scripts = document.querySelectorAll('script[data-key-id]');
-  const currentScript = scripts[scripts.length - 1];
+// ── Read embed attributes ──────────────────────────────────────────────
+  let currentScript = document.currentScript;
+  if (!currentScript) {
+    const scripts = document.querySelectorAll(
+      'script[data-api-key], script[data-key-id], script[src*="widget.js"]'
+    );
+    currentScript = scripts[scripts.length - 1];
+  }
 
-  const KEY_ID     = currentScript.getAttribute('data-key-id');
-  const API_KEY    = currentScript.getAttribute('data-api-key');
+  if (!currentScript) {
+    console.error('[ChatSaaS] Unable to identify widget <script> element.');
+    return;
+  }
+
+  const KEY_ID     = currentScript.getAttribute('data-key-id') || '';
+  const API_KEY    = currentScript.getAttribute('data-api-key') || '';
   const DOC_IDS    = (currentScript.getAttribute('data-docs') || '').split(',').map(Number).filter(Boolean);
-  const API_URL    = (currentScript.getAttribute('data-api-url') || 'http://localhost:8000').replace(/\/$/, '');
 
-  if (!KEY_ID || !API_KEY) {
-    console.error('[ChatSaaS] Missing data-key-id or data-api-key attributes.');
+  let defaultApiUrl = 'http://localhost:8000';
+  if (currentScript.src) {
+    try {
+      defaultApiUrl = new URL(currentScript.src).origin;
+    } catch (e) {}
+  }
+  const API_URL    = (currentScript.getAttribute('data-api-url') || defaultApiUrl).replace(/\/$/, '');
+
+  const IDENTIFIER = KEY_ID || API_KEY;
+
+  if (!IDENTIFIER) {
+    console.error('[ChatSaaS] Missing data-api-key or data-key-id attribute in script tag.');
     return;
   }
 
   // ── State ──────────────────────────────────────────────────────────────
-  let sessionId = null;
+  let sessionId = localStorage.getItem(`saas_widget_session_${IDENTIFIER}`) || null;
   let isOpen = false;
   let isDark = false;
   let config = {
@@ -49,16 +68,33 @@
     position: 'bottom-right',
   };
 
-  // ── Load config from server ────────────────────────────────────────────
+  // Parse inline script tag overrides
+  const inlineBotName = currentScript.getAttribute('data-bot-name');
+  if (inlineBotName) config.bot_name = inlineBotName;
+
+  const inlineWelcome = currentScript.getAttribute('data-welcome-message');
+  if (inlineWelcome) config.welcome_message = inlineWelcome;
+
+  const inlinePrimary = currentScript.getAttribute('data-primary-color');
+  if (inlinePrimary) config.light_primary_color = inlinePrimary;
+
+  const inlineDarkPrimary = currentScript.getAttribute('data-dark-primary-color');
+  if (inlineDarkPrimary) config.dark_primary_color = inlineDarkPrimary;
+
+  const inlinePos = currentScript.getAttribute('data-position');
+  if (inlinePos) config.position = inlinePos;
+
+  // ── Load config from server (Single Source of Truth) ───────────────────
   async function loadConfig() {
     try {
-      const res = await fetch(`${API_URL}/api/keys/${KEY_ID}/widget-config/public/`);
+      const res = await fetch(`${API_URL}/api/keys/${encodeURIComponent(IDENTIFIER)}/widget-config/public/`);
       if (res.ok) {
         const data = await res.json();
+        // Server configuration takes priority so dashboard "Publish Changes" reflects live!
         config = { ...config, ...data };
       }
     } catch (e) {
-      // Use defaults silently
+      // Use defaults & inline overrides silently on network failure
     }
   }
 
@@ -332,7 +368,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Api-Key ${API_KEY}`,
+          'Authorization': `Api-Key ${API_KEY || KEY_ID}`,
         },
         body: JSON.stringify({
           question,
@@ -347,6 +383,9 @@
 
       const data = await response.json();
       sessionId = data.session_id;
+      if (sessionId) {
+        localStorage.setItem(`saas_widget_session_${IDENTIFIER}`, sessionId);
+      }
       hideTyping();
       addMessage(data.answer, 'bot');
     } catch (err) {
@@ -364,11 +403,14 @@
   async function init() {
     await loadConfig();
 
-    // Apply forced dark or user preference
+    // Apply forced dark or user preference — only read localStorage if owner allows toggle
     if (config.force_dark_mode) {
       isDark = true;
-    } else {
+    } else if (config.allow_user_toggle) {
       isDark = localStorage.getItem('saas-widget-dark') === '1';
+    } else {
+      isDark = false; // Owner disabled dark mode — clear any cached user preference
+      localStorage.removeItem('saas-widget-dark');
     }
 
     injectStyles();

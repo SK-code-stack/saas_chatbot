@@ -43,9 +43,13 @@ class APIKeyViewSet(viewsets.GenericViewSet):
             key_prefix=prefix,
         )
 
-        # Auto-create widget config with defaults
+        # Auto-create widget config with system_prompt if provided
         from .models import WidgetConfig
-        WidgetConfig.objects.get_or_create(api_key=api_key)
+        system_prompt = request.data.get('system_prompt', '')
+        wc, _ = WidgetConfig.objects.get_or_create(api_key=api_key)
+        if system_prompt:
+            wc.system_prompt = system_prompt
+            wc.save(update_fields=['system_prompt'])
 
         return Response({
             'id': api_key.id,
@@ -82,6 +86,33 @@ class APIKeyViewSet(viewsets.GenericViewSet):
 
     def destroy(self, request, pk=None):
         return self.delete_key(request, pk)
+
+    # ── Update key / Chatbot configuration ─────────────────────────
+    @action(detail=True, methods=['patch', 'put'])
+    def update_key(self, request, pk=None):
+        try:
+            api_key = self.get_queryset().get(id=pk)
+        except APIKey.DoesNotExist:
+            return Response({'error': 'Key not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        name = request.data.get('name')
+        document_ids = request.data.get('document_ids')
+        system_prompt = request.data.get('system_prompt')
+
+        if name is not None:
+            api_key.name = str(name).strip()
+        if document_ids is not None:
+            api_key.document_ids = [int(x) for x in document_ids]
+        api_key.save()
+
+        if system_prompt is not None:
+            from .models import WidgetConfig
+            wc, _ = WidgetConfig.objects.get_or_create(api_key=api_key)
+            wc.system_prompt = str(system_prompt)
+            wc.save(update_fields=['system_prompt'])
+
+        serializer = APIKeySerializer(api_key)
+        return Response(serializer.data)
 
 
     # ── Usage stats ────────────────────────────────────────────────

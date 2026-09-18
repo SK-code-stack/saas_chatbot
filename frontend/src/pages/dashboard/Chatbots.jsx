@@ -16,6 +16,17 @@ export default function Chatbots() {
   const [selectedDocIds, setSelectedDocIds] = useState([])
   const [createdKeyData, setCreatedKeyData] = useState(null)
   const [copied, setCopied] = useState(null) // 'script' | 'apikey' | 'curl'
+  const [viewCodeBot, setViewCodeBot] = useState(null)
+  const [editingBot, setEditingBot] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editDocIds, setEditDocIds] = useState([])
+  const [editPrompt, setEditPrompt] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [refiningEditPrompt, setRefiningEditPrompt] = useState(false)
+  const [customPrompt, setCustomPrompt] = useState(
+    localStorage.getItem('saas_custom_system_prompt') || ''
+  )
+  const [refiningPrompt, setRefiningPrompt] = useState(false)
 
   // ── Fetch uploaded documents ──────────────────────────────────
   const { data: rawDocs = [], isLoading: docsLoading } = useQuery({
@@ -86,10 +97,112 @@ export default function Chatbots() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['api-keys'] }),
   })
 
-  const handleCreate = () => {
+  const handleRefinePrompt = async () => {
+    if (selectedDocIds.length === 0) {
+      toast.error('Please select at least one document first')
+      return
+    }
+    setRefiningPrompt(true)
+    try {
+      const res = await api.post('/api/chatbot/refine_prompt/', {
+        prompt: customPrompt,
+        document_ids: selectedDocIds.map(Number),
+      })
+      if (res.data?.refined_prompt) {
+        setCustomPrompt(res.data.refined_prompt)
+        toast.success('✨ AI refined system prompt based on selected documents!')
+      }
+    } catch {
+      toast.error('Failed to generate prompt')
+    } finally {
+      setRefiningPrompt(false)
+    }
+  }
+
+  const handleCreate = async () => {
     if (!botName.trim()) { toast.error('Please give your chatbot a name first'); return }
     if (selectedDocIds.length === 0) { toast.error('Please select at least one document'); return }
-    createMutation.mutate({ name: botName.trim(), document_ids: selectedDocIds.map(Number) })
+
+    let promptToUse = customPrompt.trim()
+    if (!promptToUse) {
+      setRefiningPrompt(true)
+      const toastId = toast.loading('Generating system prompt from selected documents...')
+      try {
+        const res = await api.post('/api/chatbot/refine_prompt/', {
+          prompt: '',
+          document_ids: selectedDocIds.map(Number),
+        })
+        promptToUse = res.data?.refined_prompt || ''
+        if (promptToUse) setCustomPrompt(promptToUse)
+        toast.success('System prompt auto-generated!', { id: toastId })
+      } catch {
+        toast.dismiss(toastId)
+      } finally {
+        setRefiningPrompt(false)
+      }
+    }
+
+    createMutation.mutate({
+      name: botName.trim(),
+      document_ids: selectedDocIds.map(Number),
+      system_prompt: promptToUse,
+    })
+  }
+
+  // ── Edit Chatbot Modal Handlers ───────────────────────────────
+  const handleOpenEdit = (bot) => {
+    setEditingBot(bot)
+    setEditName(bot.name || '')
+    setEditDocIds((bot.document_ids || []).map(String))
+    setEditPrompt(bot.widget_config?.system_prompt || '')
+  }
+
+  const toggleEditDoc = (id) => {
+    setEditDocIds((prev) =>
+      prev.includes(String(id)) ? prev.filter((d) => d !== String(id)) : [...prev, String(id)]
+    )
+  }
+
+  const handleRefineEditPrompt = async () => {
+    if (editDocIds.length === 0) {
+      toast.error('Please select at least one document first')
+      return
+    }
+    setRefiningEditPrompt(true)
+    try {
+      const res = await api.post('/api/chatbot/refine_prompt/', {
+        prompt: editPrompt,
+        document_ids: editDocIds.map(Number),
+      })
+      if (res.data?.refined_prompt) {
+        setEditPrompt(res.data.refined_prompt)
+        toast.success('✨ AI refined system prompt!')
+      }
+    } catch {
+      toast.error('Failed to generate prompt')
+    } finally {
+      setRefiningEditPrompt(false)
+    }
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) { toast.error('Name cannot be empty'); return }
+    if (editDocIds.length === 0) { toast.error('Select at least one document'); return }
+    setSavingEdit(true)
+    try {
+      await api.patch(`/api/keys/${editingBot.id}/update_key/`, {
+        name: editName.trim(),
+        document_ids: editDocIds.map(Number),
+        system_prompt: editPrompt.trim(),
+      })
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] })
+      toast.success('Chatbot updated successfully!')
+      setEditingBot(null)
+    } catch {
+      toast.error('Failed to update chatbot')
+    } finally {
+      setSavingEdit(false)
+    }
   }
 
   const copyText = (text, key) => {
@@ -101,19 +214,23 @@ export default function Chatbots() {
 
   // ── Embed snippets ────────────────────────────────────────────
   const apiKey = createdKeyData?.raw_key || 'sk_live_...'
+  const keyId = createdKeyData?.id || ''
   const botNameDisplay = createdKeyData?.name || botName || 'My Chatbot'
+  const backendBaseUrl = window.location.protocol + '//' + window.location.hostname + ':8000'
 
   const scriptTag = `<script
-  src="https://cdn.chatti.ai/widget.js"
+  src="${backendBaseUrl}/widget.js"
+  data-key-id="${keyId}"
   data-api-key="${apiKey}"
+  data-api-url="${backendBaseUrl}"
   data-bot-name="${botNameDisplay}"
   async>
 </script>`
 
-  const curlExample = `curl -X POST https://api.chatti.ai/v1/chat \\
-  -H "Authorization: Bearer ${apiKey}" \\
+  const curlExample = `curl -X POST ${backendBaseUrl}/api/keys/chat/ \\
+  -H "Authorization: Api-Key ${apiKey}" \\
   -H "Content-Type: application/json" \\
-  -d '{"message": "Hello, what are your pricing plans?"}'`
+  -d '{"question": "Hello, what are your pricing plans?"}'`
 
   // ── UI ────────────────────────────────────────────────────────
   return (
@@ -244,16 +361,46 @@ export default function Chatbots() {
                     )}
                   </div>
 
-                  {/* Create Button */}
+                  {/* Step C: Add Prompt */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-[#6366f1] flex items-center justify-center text-xs font-black text-white shrink-0">C</span>
+                        Add System Prompt
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleRefinePrompt}
+                        disabled={refiningPrompt || selectedDocIds.length === 0}
+                        className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#38bdf8] text-white text-xs font-bold shadow hover:opacity-95 disabled:opacity-40 transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">{refiningPrompt ? 'auto_mode' : 'auto_awesome'}</span>
+                        <span>{refiningPrompt ? 'Generating...' : '✨ AI Refine'}</span>
+                      </button>
+                    </div>
+
+                    <textarea
+                      rows={3}
+                      value={customPrompt}
+                      onChange={(e) => setCustomPrompt(e.target.value)}
+                      placeholder="Type your custom system instructions here, or leave empty to automatically generate a prompt based on your selected documents..."
+                      className="w-full bg-slate-50 dark:bg-[#131b2e] text-slate-900 dark:text-white text-xs sm:text-sm p-3.5 rounded-xl border border-slate-200 dark:border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-slate-400 dark:placeholder-slate-400 leading-relaxed"
+                    />
+                    <p className="text-[11px] text-slate-400 dark:text-[#908fa0]">
+                      💡 <strong>Note:</strong> If left empty, AI will automatically analyze your selected documents and generate custom behavior rules upon creation.
+                    </p>
+                  </div>
+
+                  {/* Generate and Get Code Button */}
                   <button
                     onClick={handleCreate}
-                    disabled={createMutation.isPending || !botName.trim() || selectedDocIds.length === 0}
+                    disabled={createMutation.isPending || refiningPrompt || !botName.trim() || selectedDocIds.length === 0}
                     className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#38bdf8] text-white font-bold text-sm shadow-lg shadow-[#6366f1]/25 hover:opacity-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    {createMutation.isPending ? (
-                      <><span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span><span>Creating...</span></>
+                    {createMutation.isPending || refiningPrompt ? (
+                      <><span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span><span>{refiningPrompt ? 'Generating Prompt...' : 'Creating Chatbot...'}</span></>
                     ) : (
-                      <><span className="material-symbols-outlined text-[18px]">rocket_launch</span><span>Create & Get My Code</span></>
+                      <><span className="material-symbols-outlined text-[18px]">rocket_launch</span><span>Generate & Get Code</span></>
                     )}
                   </button>
                 </>
@@ -411,8 +558,24 @@ export default function Chatbots() {
                         </td>
                         <td className="py-3.5 text-right space-x-2">
                           <button
-                            onClick={() => navigate('/documents')}
-                            className="px-3 py-1.5 rounded-lg bg-[#6366f1] hover:bg-indigo-700 text-white text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center gap-1"
+                            onClick={() => handleOpenEdit(bot)}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center gap-1 shadow-sm"
+                            title="Edit chatbot name, add/delete documents, and update system prompt"
+                          >
+                            <span className="material-symbols-outlined text-[13px]">edit</span>
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => setViewCodeBot(bot)}
+                            className="px-3 py-1.5 rounded-lg bg-[#38bdf8] hover:bg-sky-400 text-[#00354a] text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center gap-1 shadow-sm"
+                            title="View website embed script tag & REST API key"
+                          >
+                            <span className="material-symbols-outlined text-[13px]">code</span>
+                            View Code / API
+                          </button>
+                          <button
+                            onClick={() => navigate('/widget')}
+                            className="px-3 py-1.5 rounded-lg bg-[#6366f1] hover:bg-indigo-700 text-white text-[11px] font-bold transition-colors cursor-pointer inline-flex items-center gap-1 shadow-sm"
                           >
                             <span className="material-symbols-outlined text-[13px]">tune</span>
                             Customize
@@ -442,6 +605,203 @@ export default function Chatbots() {
           </div>
         </main>
       </div>
+
+      {/* ── Edit Chatbot Modal ────────────────────────────────────────── */}
+      {editingBot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-6 w-full max-w-2xl space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2d3449] pb-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#6366f1] text-[22px]">edit_square</span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Edit Chatbot Settings</h3>
+              </div>
+              <button onClick={() => setEditingBot(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {/* A: Chatbot Name */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-[#c7c4d7] uppercase tracking-wider">
+                Chatbot Name
+              </label>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-[#131b2e] text-slate-900 dark:text-white text-sm px-4 py-2.5 rounded-xl border border-slate-200 dark:border-[#2d3449] focus:outline-none focus:border-[#6366f1]"
+              />
+            </div>
+
+            {/* B: Manage / Select Documents */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 dark:text-[#c7c4d7] uppercase tracking-wider flex items-center justify-between">
+                <span>Manage Linked Documents ({editDocIds.length} selected)</span>
+                <span className="text-[10px] text-slate-400 font-normal lowercase">check/uncheck to add or delete</span>
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 bg-slate-50 dark:bg-[#131b2e] rounded-xl border border-slate-200 dark:border-[#2d3449]">
+                {docs.map((doc) => {
+                  const isSelected = editDocIds.includes(String(doc.id))
+                  return (
+                    <button
+                      key={doc.id}
+                      type="button"
+                      onClick={() => toggleEditDoc(doc.id)}
+                      className={`w-full text-left p-2.5 rounded-lg border transition-all flex items-start gap-2.5 cursor-pointer ${
+                        isSelected
+                          ? 'border-[#6366f1] bg-[#6366f1]/10 text-slate-900 dark:text-white'
+                          : 'border-slate-200 dark:border-[#2d3449] bg-white dark:bg-[#171f33] text-slate-500 dark:text-[#908fa0] hover:border-[#6366f1]/40'
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                        isSelected ? 'border-[#6366f1] bg-[#6366f1]' : 'border-slate-300 dark:border-[#2d3449]'
+                      }`}>
+                        {isSelected && <span className="material-symbols-outlined text-[11px] text-white">check</span>}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate">{doc.title || doc.filename || 'Untitled'}</p>
+                        <p className="text-[10px] text-[#10b981]">{doc.chunk_count ? `${doc.chunk_count} chunks` : 'Indexed'}</p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* C: System Prompt */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 dark:text-[#c7c4d7] uppercase tracking-wider">
+                  System Behavior Instructions
+                </label>
+                <button
+                  type="button"
+                  onClick={handleRefineEditPrompt}
+                  disabled={refiningEditPrompt || editDocIds.length === 0}
+                  className="px-3 py-1 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#38bdf8] text-white text-[11px] font-bold shadow hover:opacity-95 disabled:opacity-40 transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[13px]">{refiningEditPrompt ? 'auto_mode' : 'auto_awesome'}</span>
+                  <span>{refiningEditPrompt ? 'Refining...' : '✨ AI Refine'}</span>
+                </button>
+              </div>
+
+              <textarea
+                rows={3}
+                value={editPrompt}
+                onChange={(e) => setEditPrompt(e.target.value)}
+                placeholder="Custom system instructions..."
+                className="w-full bg-slate-50 dark:bg-[#131b2e] text-slate-900 dark:text-white text-xs sm:text-sm p-3.5 rounded-xl border border-slate-200 dark:border-[#2d3449] focus:outline-none focus:border-[#6366f1] placeholder-slate-400 leading-relaxed"
+              />
+            </div>
+
+            {/* Modal Actions */}
+            <div className="pt-2 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEditingBot(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#131b2e] text-slate-600 dark:text-[#908fa0] text-xs font-bold cursor-pointer hover:bg-slate-200 dark:hover:bg-[#222a3d]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                disabled={savingEdit || !editName.trim() || editDocIds.length === 0}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#38bdf8] text-white font-bold text-xs shadow-md hover:opacity-95 disabled:opacity-50 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[15px]">save</span>
+                <span>{savingEdit ? 'Saving...' : 'Save Changes'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── View Embed Code & API Modal ───────────────────────────────── */}
+      {viewCodeBot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-6 w-full max-w-2xl space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#2d3449] pb-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#6366f1] text-[20px]">smart_toy</span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Embed Script & REST API for "{viewCodeBot.name}"</h3>
+              </div>
+              <button onClick={() => setViewCodeBot(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+              {/* Script Tag */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 dark:text-[#c7c4d7] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[#6366f1] text-[16px]">code</span>
+                    1-Click Website Embed Code
+                  </label>
+                  <button
+                    onClick={() => {
+                      const botKey = viewCodeBot.key || viewCodeBot.key_prefix || 'sk_live_demo'
+                      const code = `<script\n  src="${window.location.protocol}//${window.location.hostname}:8000/widget.js"\n  data-key-id="${viewCodeBot.id}"\n  data-api-key="${botKey}"\n  data-api-url="${window.location.protocol}//${window.location.hostname}:8000"\n  async>\n</script>`
+                      copyText(code, 'modal-script')
+                    }}
+                    className="px-3 py-1 rounded-lg bg-[#6366f1] hover:bg-indigo-700 text-white text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">content_copy</span>
+                    {copied === 'modal-script' ? 'Copied!' : 'Copy Code'}
+                  </button>
+                </div>
+                <pre className="bg-slate-900 text-sky-300 p-4 rounded-xl text-xs font-mono overflow-x-auto border border-slate-800 leading-relaxed">
+{`<script
+  src="${window.location.protocol}//${window.location.hostname}:8000/widget.js"
+  data-key-id="${viewCodeBot.id}"
+  data-api-key="${viewCodeBot.key || viewCodeBot.key_prefix || 'sk_live_demo'}"
+  data-api-url="${window.location.protocol}//${window.location.hostname}:8000"
+  async>
+</script>`}
+                </pre>
+              </div>
+
+              {/* cURL Request */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 dark:text-[#c7c4d7] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[#10b981] text-[16px]">terminal</span>
+                    cURL Developer API Request
+                  </label>
+                  <button
+                    onClick={() => {
+                      const botKey = viewCodeBot.key || viewCodeBot.key_prefix || 'sk_live_demo'
+                      const curl = `curl -X POST ${window.location.protocol}//${window.location.hostname}:8000/api/keys/chat/ \\\n  -H "Authorization: Api-Key ${botKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"question": "Hello, how can you help me?"}'`
+                      copyText(curl, 'modal-curl')
+                    }}
+                    className="px-3 py-1 rounded-lg bg-[#10b981] hover:bg-emerald-600 text-white text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">content_copy</span>
+                    {copied === 'modal-curl' ? 'Copied!' : 'Copy cURL'}
+                  </button>
+                </div>
+                <pre className="bg-slate-900 text-emerald-300 p-4 rounded-xl text-xs font-mono overflow-x-auto border border-slate-800 leading-relaxed">
+{`curl -X POST ${window.location.protocol}//${window.location.hostname}:8000/api/keys/chat/ \\
+  -H "Authorization: Api-Key ${viewCodeBot.key || viewCodeBot.key_prefix || 'sk_live_demo'}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"question": "Hello, how can you help me?"}'`}
+                </pre>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => setViewCodeBot(null)}
+                className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-[#131b2e] text-slate-600 dark:text-white font-bold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-[#222a3d] transition-colors"
+              >
+                Close Box
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

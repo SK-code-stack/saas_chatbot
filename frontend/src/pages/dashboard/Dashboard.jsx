@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import Sidebar from '../../components/layout/Sidebar'
 import Header from '../../components/layout/Header'
+import { useQuery } from '@tanstack/react-query'
+import api from '../../lib/axios'
 import {
   ResponsiveContainer,
   AreaChart,
@@ -15,31 +17,38 @@ import {
 
 export default function Dashboard() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [showAllLogs, setShowAllLogs] = useState(false)
 
-  // Sample Recharts Data
-  const messageData = [
-    { time: '00:00', messages: 420, resolution: 98 },
-    { time: '04:00', messages: 180, resolution: 96 },
-    { time: '08:00', messages: 890, resolution: 99 },
-    { time: '12:00', messages: 1450, resolution: 97 },
-    { time: '16:00', messages: 1820, resolution: 98 },
-    { time: '20:00', messages: 950, resolution: 96 },
-    { time: '23:59', messages: 610, resolution: 99 },
+  // Fetch real-time dynamic overview data from backend
+  const { data: overviewData, isLoading } = useQuery({
+    queryKey: ['dashboard-overview'],
+    queryFn: async () => {
+      const res = await api.get('/api/chatbot/overview/')
+      return res.data
+    },
+    refetchInterval: 10000,
+  })
+
+  const metrics = overviewData?.metrics || {
+    active_chatbots: 0,
+    total_messages: 0,
+    knowledge_docs_count: 0,
+    total_chunks_count: 0,
+    rate_limit_percentage: 0,
+  }
+
+  const messageData = overviewData?.message_data || [
+    { time: '00:00', messages: 0, resolution: 100 },
+    { time: '04:00', messages: 0, resolution: 100 },
+    { time: '08:00', messages: 0, resolution: 100 },
+    { time: '12:00', messages: 0, resolution: 100 },
+    { time: '16:00', messages: 0, resolution: 100 },
+    { time: '20:00', messages: 0, resolution: 100 },
+    { time: '23:59', messages: 0, resolution: 100 },
   ]
 
-  const intentData = [
-    { name: 'Product Pricing', value: 42, color: '#6366f1' },
-    { name: 'API & Integration', value: 28, color: '#38bdf8' },
-    { name: 'Account & Billing', value: 18, color: '#10b981' },
-    { name: 'Technical Support', value: 12, color: '#f59e0b' },
-  ]
-
-  const recentConversations = [
-    { id: 'SESS-8492', user: 'alex.m@acme.io', topic: 'Webhook HMAC Signature Validation', score: '99.4%', time: '2 mins ago', status: 'Resolved' },
-    { id: 'SESS-8491', user: 'sarah.k@fintech.co', topic: 'Stripe Plan Upgrade Inquiry', score: '98.1%', time: '14 mins ago', status: 'Resolved' },
-    { id: 'SESS-8490', user: 'dev_user99', topic: 'Vector DB Indexing Latency', score: '95.2%', time: '35 mins ago', status: 'Escalated' },
-    { id: 'SESS-8489', user: 'growth@shop.net', topic: 'Widget Custom Color Setup', score: '99.8%', time: '1 hr ago', status: 'Resolved' },
-  ]
+  const intentData = overviewData?.intent_data || []
+  const recentConversations = overviewData?.recent_conversations || []
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0b1326] text-slate-800 dark:text-[#dae2fd] flex transition-colors duration-200">
@@ -135,12 +144,14 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl md:text-3xl font-bold text-white">4 Active</span>
+                <span className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+                  {isLoading ? '...' : `${metrics.active_chatbots} Active`}
+                </span>
                 <span className="text-xs font-medium text-[#10b981] flex items-center">
-                  <span className="material-symbols-outlined text-[14px]">arrow_upward</span> +12%
+                  <span className="material-symbols-outlined text-[14px]">arrow_upward</span> Live
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-[#908fa0]">Across production environments</p>
+              <p className="text-[11px] text-slate-500 dark:text-[#908fa0]">Across active chatbot keys</p>
             </div>
 
             {/* Metric 2 */}
@@ -152,9 +163,11 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl md:text-3xl font-bold text-white">128,450</span>
+                <span className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+                  {isLoading ? '...' : metrics.total_messages.toLocaleString()}
+                </span>
                 <span className="text-xs font-medium text-[#10b981] flex items-center">
-                  <span className="material-symbols-outlined text-[14px]">arrow_upward</span> +24%
+                  <span className="material-symbols-outlined text-[14px]">arrow_upward</span> Live
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-[#908fa0]">This monthly billing cycle</p>
@@ -163,14 +176,15 @@ export default function Dashboard() {
             {/* Metric 3 */}
             <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-5 space-y-3 relative overflow-hidden group hover:border-[#10b981]/50 transition-all">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500 dark:text-[#908fa0]">Knowledge Docs</span>
+                <span className="text-xs font-medium text-slate-500 dark:text-[#908fa0]">Knowledge Base</span>
                 <div className="w-8 h-8 rounded-lg bg-[#10b981]/20 flex items-center justify-center text-[#10b981]">
                   <span className="material-symbols-outlined text-[18px]">database</span>
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl md:text-3xl font-bold text-white">1,420 Files</span>
-                <span className="text-xs font-mono font-medium text-[#10b981]">Ready</span>
+                <span className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">
+                  {isLoading ? '...' : `${metrics.knowledge_docs_count} Docs (${metrics.total_chunks_count.toLocaleString()} Chunks)`}
+                </span>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-[#908fa0]">Vector embeddings synchronized</p>
             </div>
@@ -178,18 +192,22 @@ export default function Dashboard() {
             {/* Metric 4 */}
             <div className="bg-white dark:bg-[#171f33] border border-slate-200 dark:border-[#2d3449] rounded-2xl p-5 space-y-3 relative overflow-hidden group hover:border-amber-500/50 transition-all">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500 dark:text-[#908fa0]">API Rate Limit Usage</span>
+                <span className="text-xs font-medium text-slate-500 dark:text-[#908fa0]">API Quota Usage</span>
                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
                   <span className="material-symbols-outlined text-[18px]">speed</span>
                 </div>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl md:text-3xl font-bold text-white">84.2%</span>
-                <span className="text-xs font-mono font-medium text-amber-400">Warning</span>
+                <span className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+                  {isLoading ? '...' : `${metrics.rate_limit_percentage}%`}
+                </span>
+                <span className="text-xs font-mono font-medium text-amber-400">
+                  {metrics.rate_limit_percentage > 80 ? 'Warning' : 'Normal'}
+                </span>
               </div>
               {/* Progress Bar */}
               <div className="w-full bg-slate-200 dark:bg-[#131b2e] h-2 rounded-full overflow-hidden">
-                <div className="bg-amber-400 h-full w-[84%]" />
+                <div className="bg-amber-400 h-full transition-all duration-500" style={{ width: `${Math.min(100, metrics.rate_limit_percentage)}%` }} />
               </div>
             </div>
           </div>
@@ -270,17 +288,27 @@ export default function Dashboard() {
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#2d3449] pb-4">
               <div>
                 <h2 className="text-base font-bold text-white">Live Conversation Stream</h2>
-                <p className="text-xs text-slate-500 dark:text-[#908fa0]">Recent interactions handled by the AI support agent</p>
+                <p className="text-xs text-slate-500 dark:text-[#908fa0]">
+                  Showing {recentConversations.length === 0 ? 0 : (showAllLogs ? recentConversations.length : Math.min(5, recentConversations.length))} of {recentConversations.length} recent interactions handled by the AI support agent
+                </p>
               </div>
-              <button className="text-xs font-semibold text-[#38bdf8] hover:underline flex items-center gap-1">
-                View All Logs <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-              </button>
+              {recentConversations.length > 5 && (
+                <button
+                  onClick={() => setShowAllLogs((prev) => !prev)}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#131b2e] border border-slate-200 dark:border-[#2d3449] hover:bg-slate-200 dark:hover:bg-[#222a3d] text-xs font-semibold text-[#38bdf8] transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <span>{showAllLogs ? 'Show 5 Logs' : `View All Logs (${recentConversations.length})`}</span>
+                  <span className={`material-symbols-outlined text-[16px] transition-transform duration-200 ${showAllLogs ? 'rotate-180' : ''}`}>
+                    expand_more
+                  </span>
+                </button>
+              )}
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="text-slate-500 dark:text-[#908fa0] uppercase tracking-wider font-mono border-b border-slate-200 dark:border-slate-200 dark:border-[#2d3449]/50">
+                  <tr className="text-slate-500 dark:text-[#908fa0] uppercase tracking-wider font-mono border-b border-slate-200 dark:border-[#2d3449]/50">
                     <th className="pb-3 font-medium">Session ID</th>
                     <th className="pb-3 font-medium">User Email</th>
                     <th className="pb-3 font-medium">Topic / Query Summary</th>
@@ -289,24 +317,32 @@ export default function Dashboard() {
                     <th className="pb-3 font-medium text-right">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-100 dark:divide-[#2d3449]/30 text-[#dae2fd]">
-                  {recentConversations.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-[#222a3d]/40 transition-colors">
-                      <td className="py-3.5 font-mono text-[#38bdf8]">{row.id}</td>
-                      <td className="py-3.5 font-medium">{row.user}</td>
-                      <td className="py-3.5 text-slate-600 dark:text-[#c7c4d7]">{row.topic}</td>
-                      <td className="py-3.5 font-mono text-[#10b981]">{row.score}</td>
-                      <td className="py-3.5 text-slate-500 dark:text-[#908fa0]">{row.time}</td>
-                      <td className="py-3.5 text-right">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium ${row.status === 'Resolved'
-                            ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30'
-                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                          }`}>
-                          {row.status}
-                        </span>
+                <tbody className="divide-y divide-slate-100 dark:divide-[#2d3449]/30 text-[#dae2fd]">
+                  {recentConversations.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-6 text-center text-slate-400">
+                        No chat sessions recorded yet. Connect a chatbot and ask a question to see real-time streaming data.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    (showAllLogs ? recentConversations : recentConversations.slice(0, 5)).map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-[#222a3d]/40 transition-colors">
+                        <td className="py-3.5 font-mono text-[#38bdf8]">{row.id}</td>
+                        <td className="py-3.5 font-medium">{row.user}</td>
+                        <td className="py-3.5 text-slate-600 dark:text-[#c7c4d7]">{row.topic}</td>
+                        <td className="py-3.5 font-mono text-[#10b981]">{row.score}</td>
+                        <td className="py-3.5 text-slate-500 dark:text-[#908fa0]">{row.time}</td>
+                        <td className="py-3.5 text-right">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium ${row.status === 'Resolved'
+                              ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30'
+                              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            }`}>
+                            {row.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

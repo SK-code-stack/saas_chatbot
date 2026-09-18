@@ -28,6 +28,15 @@ class PublicChatView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Use system prompt from WidgetConfig if not provided in request
+        if not system_prompt and hasattr(request, 'api_key') and request.api_key:
+            try:
+                wc = request.api_key.widget_config
+                if wc and wc.system_prompt:
+                    system_prompt = wc.system_prompt
+            except Exception:
+                pass
+
         if not document_ids and hasattr(request, 'api_key') and request.api_key:
             document_ids = request.api_key.document_ids or []
 
